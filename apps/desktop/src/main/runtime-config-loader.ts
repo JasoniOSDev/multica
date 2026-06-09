@@ -29,6 +29,18 @@ export async function loadRuntimeConfig(options: {
     return { ok: true, config: parseRuntimeConfig(raw) };
   } catch (err) {
     if (isMissingFileError(err)) {
+      // No desktop.json on disk. A rebranded / in-house build bakes its own
+      // server into the bundle via VITE_API_URL; prefer that over the public
+      // cloud default so the app points at its own backend out of the box,
+      // WITHOUT writing the shared ~/.multica/desktop.json (which the official
+      // app also reads). The stock build leaves VITE_API_URL unset → cloud.
+      if (options.env.apiUrl) {
+        try {
+          return { ok: true, config: runtimeConfigFromDevEnv(options.env) };
+        } catch {
+          // Malformed baked URL — fall through to the cloud default.
+        }
+      }
       return { ok: true, config: { ...DEFAULT_RUNTIME_CONFIG } };
     }
     return {
