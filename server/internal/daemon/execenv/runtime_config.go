@@ -177,7 +177,7 @@ func InjectRuntimeConfig(workDir, provider string, ctx TaskContextForEnv) (strin
 // added to one side cannot drift past the other.
 func runtimeConfigPath(workDir, provider string) string {
 	switch provider {
-	case "claude":
+	case "claude", "ccrcode":
 		return filepath.Join(workDir, "CLAUDE.md")
 	case "codex", "copilot", "opencode", "openclaw", "hermes", "pi", "cursor", "kimi", "kiro", "antigravity":
 		return filepath.Join(workDir, "AGENTS.md")
@@ -690,7 +690,7 @@ func buildMetaSkillContent(provider string, ctx TaskContextForEnv) string {
 	if len(ctx.AgentSkills) > 0 {
 		b.WriteString("## Skills\n\n")
 		switch provider {
-		case "claude":
+		case "claude", "ccrcode":
 			// Claude discovers skills natively from .claude/skills/ — just list names.
 			b.WriteString("You have the following skills installed (discovered automatically):\n\n")
 		case "codex", "copilot", "opencode", "openclaw", "pi", "cursor", "kimi", "kiro", "antigravity":

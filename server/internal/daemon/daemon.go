@@ -3714,7 +3714,7 @@ func isBlockedEnvKey(key string) bool {
 func defaultArgsForProvider(cfg Config, provider string) []string {
 	var args []string
 	switch provider {
-	case "claude":
+	case "claude", "ccrcode":
 		args = cfg.ClaudeArgs
 	case "codex":
 		args = cfg.CodexArgs

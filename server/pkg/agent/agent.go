@@ -129,7 +129,11 @@ func New(agentType string, cfg Config) (Backend, error) {
 	}
 
 	switch agentType {
-	case "claude":
+	case "claude", "ccrcode":
+		// ccrcode launches claude via `ccr code` (claude-code-router) and is
+		// wire-compatible with Claude Code, so it shares the claude backend.
+		// Its distinct identity lives only in registration + the executable
+		// path (a `ccr code` wrapper); see ccrcode.go.
 		return &claudeBackend{cfg: cfg}, nil
 	case "codex":
 		return &codexBackend{cfg: cfg}, nil
@@ -171,6 +175,7 @@ func DetectVersion(ctx context.Context, executablePath string) (string, error) {
 // about *what* users are extending, not a dump of the full command line.
 var launchHeaders = map[string]string{
 	"antigravity": "agy -p (print mode)",
+	"ccrcode":     "ccr code (stream-json)",
 	"claude":      "claude (stream-json)",
 	"codex":       "codex app-server",
 	"copilot":     "copilot (json)",

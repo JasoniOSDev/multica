@@ -239,6 +239,20 @@ func LoadConfig(overrides Overrides) (Config, error) {
 	if e, ok := probe("MULTICA_ANTIGRAVITY_PATH", "agy", "MULTICA_ANTIGRAVITY_MODEL"); ok {
 		agents["antigravity"] = e
 	}
+	// ccrcode: claude-code-router (`ccr code`) registered as a distinct,
+	// claude-compatible runtime that coexists with native claude in the same
+	// daemon. ccr code speaks the Claude Code CLI / stream-json protocol, so
+	// everywhere except registration identity ccrcode reuses claude behavior
+	// (see ccrcode.go and the "claude", "ccrcode" branches). We resolve the
+	// `ccr` binary through the normal probe (honoring MULTICA_CCR_PATH and the
+	// login-shell PATH fallback), then point the runtime at a generated
+	// wrapper that runs `ccr code "$@"` — MULTICA_CLAUDE_PATH must stay a bare
+	// executable, not a "ccr code" string with a subcommand.
+	if ccrEntry, ok := probe("MULTICA_CCR_PATH", "ccr", "MULTICA_CCRCODE_MODEL"); ok {
+		if wrapper, err := ensureCcrcodeWrapper(ccrEntry.Path); err == nil {
+			agents["ccrcode"] = AgentEntry{Path: wrapper, Model: ccrEntry.Model}
+		}
+	}
 	if len(agents) == 0 {
 		return Config{}, fmt.Errorf("no agent CLI found: install claude, codex, copilot, opencode, openclaw, hermes, gemini, pi, cursor-agent, kimi, kiro-cli, or agy and ensure it is on PATH")
 	}
@@ -583,7 +597,38 @@ func shellArgsFromEnv(name string) ([]string, error) {
 // invocation, instead of paying the cost-per-miss.
 var defaultAgentCommandNames = []string{
 	"claude", "codex", "opencode", "openclaw", "hermes",
-	"gemini", "pi", "cursor-agent", "copilot", "kimi", "kiro-cli", "agy",
+	"gemini", "pi", "cursor-agent", "copilot", "kimi", "kiro-cli", "agy", "ccr",
+}
+
+// ensureCcrcodeWrapper writes (idempotently) a small executable that runs
+// `ccr code "$@"` and returns its path. The ccrcode runtime points
+// MULTICA_CLAUDE_PATH-style execution at this wrapper rather than at `ccr`
+// directly because the agent backend invokes the executable with claude flags
+// and cannot inject the `code` subcommand itself. ccrPath is the absolute path
+// resolved for the `ccr` binary so the wrapper does not depend on the daemon's
+// PATH at run time.
+func ensureCcrcodeWrapper(ccrPath string) (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	binDir := filepath.Join(home, ".multica", "bin")
+	if err := os.MkdirAll(binDir, 0o755); err != nil {
+		return "", err
+	}
+	wrapper := filepath.Join(binDir, "multica-ccr-claude")
+	content := "#!/usr/bin/env bash\nexec \"" + ccrPath + "\" code \"$@\"\n"
+	// Rewrite only when content drifts (e.g. ccr moved) to avoid churning the
+	// file's mtime on every daemon start.
+	if existing, err := os.ReadFile(wrapper); err != nil || string(existing) != content {
+		if err := os.WriteFile(wrapper, []byte(content), 0o755); err != nil {
+			return "", err
+		}
+	}
+	if err := os.Chmod(wrapper, 0o755); err != nil {
+		return "", err
+	}
+	return wrapper, nil
 }
 
 var codexDesktopAppBundlePaths = func() []string {

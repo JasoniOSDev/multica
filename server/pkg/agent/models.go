@@ -92,7 +92,7 @@ const modelCacheTTL = 60 * time.Second
 // "" to use the provider's default name on PATH.
 func ListModels(ctx context.Context, providerType, executablePath string) ([]Model, error) {
 	switch providerType {
-	case "claude":
+	case "claude", "ccrcode":
 		models := claudeStaticModels()
 		annotateClaudeThinking(ctx, models, executablePath)
 		return models, nil
