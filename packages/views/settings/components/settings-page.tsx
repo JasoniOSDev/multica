@@ -39,7 +39,7 @@ const ACCOUNT_TAB_ICONS = {
 const WORKSPACE_TAB_KEYS = [
   "general",
   "repositories",
-  "github",
+  "gitlab",
   "integrations",
   "labs",
   "members",
@@ -47,7 +47,7 @@ const WORKSPACE_TAB_KEYS = [
 const WORKSPACE_TAB_VALUES = {
   general: "workspace",
   repositories: "repositories",
-  github: "github",
+  gitlab: "gitlab",
   integrations: "integrations",
   labs: "labs",
   members: "members",
@@ -55,7 +55,7 @@ const WORKSPACE_TAB_VALUES = {
 const WORKSPACE_TAB_ICONS = {
   general: Settings,
   repositories: FolderGit2,
-  github: GitHubMark,
+  gitlab: GitLabMark,
   integrations: Plug,
   labs: FlaskConical,
   members: Users,
@@ -70,6 +70,7 @@ const TAB_QUERY_KEY = "tab";
 // tab; it now lives inside Integrations.
 const LEGACY_WORKSPACE_TAB_REDIRECTS: Record<string, string> = {
   lark: "integrations",
+  github: "gitlab",
 };
 
 export interface ExtraSettingsTab {
@@ -173,7 +174,7 @@ export function SettingsPage({ extraAccountTabs }: SettingsPageProps = {}) {
           <TabsContent value="tokens"><TokensTab /></TabsContent>
           <TabsContent value="workspace"><WorkspaceTab /></TabsContent>
           <TabsContent value="repositories"><RepositoriesTab /></TabsContent>
-          <TabsContent value="github"><GitHubTab /></TabsContent>
+          <TabsContent value="gitlab"><GitLabTab /></TabsContent>
           <TabsContent value="integrations"><IntegrationsTab /></TabsContent>
           <TabsContent value="labs"><LabsTab /></TabsContent>
           <TabsContent value="members"><MembersTab /></TabsContent>
