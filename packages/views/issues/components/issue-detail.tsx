@@ -1437,20 +1437,20 @@ export function IssueDetail({ issueId, onDelete, onDone, defaultSidebarOpen = tr
         </div>
       )}
 
-      {/* Pull requests — hidden when the workspace disables the PR sidebar
-          (or the GitHub master switch is off). Backend data is kept either
+      {/* Merge requests — hidden when the workspace disables the MR sidebar
+          (or the GitLab master switch is off). Backend data is kept either
           way so re-enabling restores the section instantly. */}
-      {githubSettings.prSidebar && (
+      {gitlabSettings.mrSidebar && (
         <div>
           <button
             type="button"
-            className={`flex w-full items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors mb-2 hover:bg-accent/70 ${pullRequestsOpen ? "" : "text-muted-foreground hover:text-foreground"}`}
-            onClick={() => setPullRequestsOpen(!pullRequestsOpen)}
+            className={`flex w-full items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors mb-2 hover:bg-accent/70 ${mergeRequestsOpen ? "" : "text-muted-foreground hover:text-foreground"}`}
+            onClick={() => setMergeRequestsOpen(!mergeRequestsOpen)}
           >
-            {t(($) => $.detail.section_pull_requests)}
-            <ChevronRight className={`!size-3 shrink-0 stroke-[2.5] text-muted-foreground transition-transform ${pullRequestsOpen ? "rotate-90" : ""}`} />
+            {t(($) => $.detail.section_merge_requests)}
+            <ChevronRight className={`!size-3 shrink-0 stroke-[2.5] text-muted-foreground transition-transform ${mergeRequestsOpen ? "rotate-90" : ""}`} />
           </button>
-          {pullRequestsOpen && <div className="pl-2"><PullRequestList issueId={id} /></div>}
+          {mergeRequestsOpen && <div className="pl-2"><MergeRequestList issueId={id} /></div>}
         </div>
       )}
 
