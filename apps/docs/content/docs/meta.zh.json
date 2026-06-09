@@ -29,7 +29,7 @@
     "---收件箱---",
     "inbox",
     "---集成---",
-    "github-integration",
+    "gitlab-integration",
     "lark-bot-integration",
     "---自部署运维---",
     "environment-variables",

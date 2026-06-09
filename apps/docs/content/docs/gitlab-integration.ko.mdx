@@ -1,0 +1,121 @@
+---
+title: GitLab 연동
+description: 자체 호스팅 GitLab 인스턴스를 workspace 단위로 연결하면, 브랜치·제목·설명에 이슈 식별자를 포함한 merge request가 해당 이슈에 자동 연결되고 — MR을 머지하면 이슈가 Done으로 이동합니다.
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+
+**Settings → GitLab**에서 자체 호스팅 GitLab 인스턴스를 한 번 연결합니다. 연결 후에는 소스 브랜치명·제목·설명에 이슈 식별자(예: `MUL-123`)를 포함한 merge request가 해당 [이슈](/issues)에 **자동 연결**되어 이슈 사이드바의 **Merge requests**에 표시되고 — MR이 머지되면 이슈가 **Done**으로 이동합니다.
+
+연결은 **workspace 단위로 분리**됩니다. 각 workspace는 자신의 GitLab base URL을 가리키고, 자신의 webhook 시크릿 토큰을 보유하며, (선택적으로) 자신의 personal access token을 가집니다. 이슈별 설정은 필요 없으며 전체 흐름이 식별자로 구동됩니다.
+
+## 연동이 하는 일
+
+| 화면 | 동작 |
+|---|---|
+| **Settings → GitLab** | workspace 관리자와 소유자에게 GitLab 탭이 표시됩니다: 마스터 토글, **Connection** 카드(base URL + 선택 PAT), **Webhook** 카드(URL + 시크릿 토큰), 기능 스위치(MR 사이드바, Co-authored-by, 자동 연결). |
+| **이슈 사이드바 → Merge requests** | 이 이슈에 자동 연결된 각 MR을 제목·프로젝트 경로·상태(`Open` / `Merged` / `Closed`)·작성자와 함께 표시합니다. 행을 클릭하면 GitLab의 MR로 이동합니다. |
+| **Webhook(백그라운드)** | Merge Request Hook이 전달될 때마다 Multica는 MR 행을 upsert하고, MR에서 이슈 식별자를 스캔하고, 연결 행을 (재)구성합니다. 멱등적이라 같은 전달을 재생해도 no-op입니다. |
+| **머지 시 자동 상태 변경** | MR이 `merged`로 전이되면, 아직 `Done`이나 `Cancelled`가 아닌 연결된 이슈는 모두 `Done`으로 이동합니다. 상태 변경은 타임라인에 기록됩니다. |
+
+미러링되는 것은 MR 자체뿐입니다. 커밋, MR이 없는 브랜치 참조, CI 파이프라인 상태는 **모델링되지 않습니다**. 연동은 의도적으로 좁게 유지됩니다.
+
+## 식별자 매칭 방식
+
+webhook은 다음 세 필드에서 이 순서로 식별자를 추출합니다: **MR 소스 브랜치**, **MR 제목**, **MR 설명**. 매처는:
+
+- 대소문자를 구분하지 않습니다 — `mul-123`, `MUL-123`, `Mul-123` 모두 매칭됩니다.
+- 경계가 있습니다 — 왼쪽의 `\b`와 오른쪽의 숫자 앵커로 `v1.2-3` 같은 버전 번호나 이메일 형태 문자열을 잡지 않습니다.
+- workspace 범위입니다 — 해당 workspace 자신의 [이슈 접두사](/workspaces)만 매칭합니다. 접두사가 `MUL`인 workspace에서는 정수가 다른 이슈와 일치하더라도 `FOO-1`은 무시됩니다.
+- 중복 제거됩니다 — 설명에 `MUL-1, MUL-1`을 써도 이슈는 한 번만 연결됩니다.
+
+하나의 MR에서 **여러 이슈**를 참조할 수 있습니다. `Closes MUL-1, MUL-2`는 MR을 둘 다에 연결하고, 머지하면 둘 다 `Done`으로 진행시킵니다.
+
+## 머지 → Done 자동 규칙
+
+MR 상태가 `merged`로 바뀌면 연결된 각 이슈가 평가됩니다:
+
+| 이슈 현재 상태 | 결과 |
+|---|---|
+| `done` | 변경 없음(이미 종단). |
+| `cancelled` | **변경 없음** — cancelled는 사용자가 작업을 명시적으로 포기했음을 의미하며, 연동은 그 신호를 덮어쓰지 않습니다. |
+| 그 외 전부(`todo`, `in_progress`, `in_review`, `blocked`, `backlog`) | `done`으로 이동. |
+
+MR을 **머지하지 않고** 닫으면 MR 카드 상태만 `Closed`로 업데이트됩니다. 연결된 이슈는 그대로 유지되며 — 머지 없이 닫는 것이 무엇을 의미하는지는 사용자가 결정합니다.
+
+<Callout type="info">
+이슈 구독자는 사람이 이슈를 옮겼을 때와 동일하게 상태 변경에 대한 inbox 알림을 받습니다.
+</Callout>
+
+## 자동 연결되지 않는 것
+
+- **커밋 메시지의 식별자** — 소스 브랜치 / 제목 / 설명만 스캔됩니다. `MUL-123: fix login` 제목의 커밋은 같은 문자열이 MR 제목이나 설명에도 나타나지 않는 한 자동 연결되지 않습니다.
+- **MR 댓글의 식별자** — MR 자체의 메타데이터만 스캔되며 이후의 GitLab note는 무시됩니다.
+- **webhook이 없는 프로젝트의 MR** — Multica를 가리키는 Merge request events webhook이 없으면 서버는 전달을 받지 못합니다.
+- **MR을 이슈에 수동 연결** — 아직 UI가 없습니다. 팀 관례가 Multica가 읽지 않는 곳에 식별자를 두고 있다면 MR 제목이나 설명에 추가하세요.
+
+## 자체 호스팅 설정
+
+GitLab은 **workspace 단위**로 UI에서 설정합니다 — GitHub App 같은 전역 설치는 없습니다. 운영자 수준 단계는 선택적 암호화 키(아래)뿐이며, 나머지는 모두 workspace 관리자가 **Settings → GitLab**에서 수행합니다.
+
+### 1. UI에서 연결
+
+1. 소유자 또는 관리자로 **Settings → GitLab**을 엽니다.
+2. **Connection** 카드에 GitLab **base URL**(예: `https://gitlab.example.com`, HTTP 또는 HTTPS)을 입력하고 **Connect**를 클릭합니다.
+3. 선택적으로 **personal access token**(`glpat-…`)을 붙여넣습니다. API enrichment에만 사용되며 **암호화되어 저장**됩니다 — 다시 표시되지 않습니다. enrichment가 필요 없으면 비워 둡니다.
+
+### 2. GitLab에 webhook 추가
+
+Multica의 **Webhook** 카드를 열면 **Webhook URL**과 **시크릿 토큰**이 표시됩니다. 그런 다음 GitLab 프로젝트에서:
+
+| GitLab 필드(**Settings → Webhooks**) | 값 |
+|---|---|
+| **URL** | Multica의 **Webhook URL** — `https://<api-host>/api/webhooks/gitlab`. |
+| **Secret token** | Multica Webhook 카드의 **시크릿 토큰**(관리자/소유자에게만 표시). Multica는 이를 `X-Gitlab-Token` 헤더로 돌려보내고, 일치하지 않는 전달은 거부합니다. |
+| **Trigger** | **Merge request events**(object kind는 `Merge Request Hook`)를 체크합니다. |
+
+GitLab에서 webhook을 저장한 다음 **Test → Merge request events**(또는 실제 MR을 열어) 전달을 확인합니다.
+
+<Callout type="warning">
+전달을 인증하는 것은 **시크릿 토큰**뿐입니다 — Multica는 들어오는 `X-Gitlab-Token` 헤더를 저장된 토큰과 비교합니다. Webhook 카드의 **Regenerate**로 회전할 수 있습니다. 회전 후에는 새 값을 GitLab에 다시 붙여넣는 것을 잊지 마세요. 그렇지 않으면 전달이 거부되기 시작합니다.
+</Callout>
+
+### 3. 선택 — personal access token 암호화 저장
+
+연결에 PAT를 저장한다면, 저장 시 암호화하도록 운영자 수준 환경 변수 하나를 설정합니다:
+
+```dotenv
+# 선택. GitLab personal access token을 저장 시 암호화하는 데 쓰는
+# base64 인코딩된 32바이트 키. 생성: openssl rand -base64 32
+MULTICA_GITLAB_SECRET_KEY=
+```
+
+이 키는 PAT 저장에만 영향을 줍니다. webhook 흐름(URL + 시크릿 토큰 + Merge request events)에는 필요하지 않습니다 — PAT를 저장하지 않으면 비워 둡니다.
+
+### 4. 검증
+
+소스 브랜치 / 제목 / 설명에 이슈 식별자를 포함한 MR을 열면 — 몇 초 안에 해당 이슈 상세 페이지에 **Merge requests** 블록이 나타납니다. MR을 머지하면 연결된 이슈가 **Done**으로 이동합니다.
+
+## 연결 해제
+
+**Settings → GitLab**에서 관리자와 소유자는 **Disconnect**할 수 있습니다. Multica는 해당 GitLab 인스턴스로부터의 webhook 수신을 중지합니다. 기존 merge request 미러와 연결은 유지되어 과거 이슈 사이드바는 당시 연결되었던 것을 계속 보여줍니다. 언제든 다시 연결해 업데이트를 재개할 수 있습니다. GitLab 프로젝트 쪽에서 webhook을 제거할 수도 있습니다.
+
+## 권한과 가시성
+
+- **연결 / 해제 / 토큰 재생성**은 workspace **소유자 또는 관리자**가 필요합니다. webhook 시크릿 토큰은 관리자와 소유자에게만 표시됩니다.
+- 이슈의 **Merge requests** 사이드바는 그 이슈를 읽을 수 있는 누구에게나 보입니다 — 이슈 상세의 나머지와 동일한 권한입니다.
+- 선택적 PAT는 API enrichment에 **읽기 전용**으로 사용됩니다. Multica는 커밋·note·파이프라인 상태를 GitLab으로 다시 쓰지 않습니다.
+
+## 제한
+
+현재 알아 둘 거친 부분 몇 가지:
+
+- **아직 수동 연결 UI가 없습니다** — MR을 연결하는 유일한 방법은 식별자를 소스 브랜치·제목·설명에 넣는 것입니다.
+- **CI / 파이프라인 상태 없음** — 미러링되는 것은 MR 자체뿐입니다. 파이프라인 상태, review note, reviewer는 Multica에 표시되지 않습니다.
+- **머지 → Done 규칙의 workspace 수준 설정 없음** — 고정 기본값(`merged → done`, 단 `cancelled`는 제외)입니다.
+
+## 다음
+
+- [Issues](/issues) — MR에서 참조되는 이슈 식별자(`MUL-123`)
+- [Workspaces](/workspaces) — workspace별 이슈 접두사를 설정하는 곳
+- [Environment variables](/environment-variables) — 선택적 `MULTICA_GITLAB_SECRET_KEY`를 포함한 전체 환경 변수 레퍼런스
