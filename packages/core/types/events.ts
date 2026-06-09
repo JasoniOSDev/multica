@@ -75,11 +75,9 @@ export type WSEventType =
   | "invitation:accepted"
   | "invitation:declined"
   | "invitation:revoked"
-  | "github_installation:created"
-  | "github_installation:deleted"
-  | "pull_request:linked"
-  | "pull_request:updated"
-  | "pull_request:unlinked";
+  | "gitlab_connection:updated"
+  | "gitlab_connection:deleted"
+  | "merge_request:updated";
 
 export interface WSMessage<T = unknown> {
   type: WSEventType;
@@ -457,11 +455,9 @@ export interface WSEventPayloadMap {
   "pin:created": unknown;
   "pin:deleted": unknown;
   "pin:reordered": unknown;
-  "github_installation:created": unknown;
-  "github_installation:deleted": unknown;
-  "pull_request:linked": unknown;
-  "pull_request:updated": unknown;
-  "pull_request:unlinked": unknown;
+  "gitlab_connection:updated": unknown;
+  "gitlab_connection:deleted": unknown;
+  "merge_request:updated": unknown;
 }
 
 /**
