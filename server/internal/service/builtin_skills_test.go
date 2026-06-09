@@ -220,12 +220,12 @@ func TestWorkingOnIssuesSkillCoversIssueLoopContracts(t *testing.T) {
 	// references/source-map.md, not here, so a downstream main merge that
 	// shifts a line cannot rot this test into pinning a stale lie.
 	mustContain := []string{
-		"multica issue pull-requests <issue-id> --output json",
+		"multica issue merge-requests <issue-id> --output json",
 		"Default for code-changing issue work",
-		"open or update a PR before posting the final Multica issue comment",
+		"open or update an MR before posting the final Multica issue comment",
 		"This is a default, not",
-		"Use a routable issue key in the PR title, body, or branch",
-		"include the PR URL when a PR exists",
+		"Use a routable issue key in the MR title, description, or branch",
+		"include the MR URL when an MR exists",
 		"Closes MUL-2759",
 		"--status backlog",
 		"pr_url",
@@ -458,7 +458,7 @@ func TestRuntimesAndReposSkillCoversClaimAndCheckoutChain(t *testing.T) {
 		"multica runtime list --output json",
 		"multica repo checkout <url>",
 		"MULTICA_DAEMON_PORT",
-		"github_repo",
+		"git_repo",
 		"local_directory",
 		"Runtime and repo commands affect active agent execution",
 		"references/runtimes-and-repos-source-map.md",
@@ -491,10 +491,10 @@ func TestProjectsAndResourcesSkillCoversDurableContext(t *testing.T) {
 		"Projects are durable context containers",
 		".multica/project/resources.json",
 		"multica project resource list <project-id> --output json",
-		"multica project resource add <project-id> --type github_repo --url <github-url> --output json",
+		"multica project resource add <project-id> --type git_repo --url <repo-url> --output json",
 		"multica project resource add <project-id> --type local_directory",
 		"Project resources are durable and affect future tasks",
-		"github_repo.resource_ref.url",
+		"git_repo.resource_ref.url",
 		"references/projects-and-resources-source-map.md",
 	}
 	for _, want := range mustContain {

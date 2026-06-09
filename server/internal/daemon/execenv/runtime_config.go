@@ -118,13 +118,13 @@ func sanitizeEmailForBrief(email string) string {
 func formatProjectResource(r ProjectResourceForEnv) string {
 	label := r.Label
 	switch r.ResourceType {
-	case "github_repo":
+	case "git_repo":
 		var payload struct {
 			URL               string `json:"url"`
 			DefaultBranchHint string `json:"default_branch_hint,omitempty"`
 		}
 		_ = json.Unmarshal(r.ResourceRef, &payload)
-		out := fmt.Sprintf("**GitHub repo**: %s", payload.URL)
+		out := fmt.Sprintf("**Git repo**: %s", payload.URL)
 		if payload.DefaultBranchHint != "" {
 			out += fmt.Sprintf(" (default branch: `%s`)", payload.DefaultBranchHint)
 		}
@@ -549,7 +549,7 @@ func buildMetaSkillContent(provider string, ctx TaskContextForEnv) string {
 				fmt.Fprintf(&b, "- %s\n", formatProjectResource(r))
 			}
 			b.WriteString("\nResources are pointers — open them only when relevant to the task. ")
-			b.WriteString("For `github_repo` resources, use `multica repo checkout <url>` to fetch the code. Add `--ref <branch-or-sha>` when a task or handoff names an exact revision.\n\n")
+			b.WriteString("For `git_repo` resources, use `multica repo checkout <url>` to fetch the code. Add `--ref <branch-or-sha>` when a task or handoff names an exact revision.\n\n")
 		} else {
 			b.WriteString("This project has no resources attached yet.\n\n")
 		}

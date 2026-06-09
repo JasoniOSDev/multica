@@ -26,7 +26,7 @@ func newProjectResourceUpdateTestCmd() *cobra.Command {
 
 // TestBuildResourceRefFromFlagsGithubMergesHint pins the nit fix from MUL-2662
 // review round 2: `multica project resource update <p> <r> --default-branch-hint x`
-// must rebuild the full github_repo payload by merging the existing `url` —
+// must rebuild the full git_repo payload by merging the existing `url` —
 // otherwise the server sees `{default_branch_hint: "x"}` and 400s.
 func TestBuildResourceRefFromFlagsGithubMergesHint(t *testing.T) {
 	t.Run("hint-only edit preserves existing url", func(t *testing.T) {
@@ -34,7 +34,7 @@ func TestBuildResourceRefFromFlagsGithubMergesHint(t *testing.T) {
 		_ = cmd.Flags().Set("default-branch-hint", "main")
 		existing := map[string]any{"url": "https://github.com/multica-ai/multica"}
 
-		ref, has, err := buildResourceRefFromFlags(cmd, "github_repo", existing)
+		ref, has, err := buildResourceRefFromFlags(cmd, "git_repo", existing)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -56,7 +56,7 @@ func TestBuildResourceRefFromFlagsGithubMergesHint(t *testing.T) {
 			"url":                 "https://github.com/multica-ai/multica",
 			"default_branch_hint": "stale",
 		}
-		ref, has, err := buildResourceRefFromFlags(cmd, "github_repo", existing)
+		ref, has, err := buildResourceRefFromFlags(cmd, "git_repo", existing)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -78,7 +78,7 @@ func TestBuildResourceRefFromFlagsGithubMergesHint(t *testing.T) {
 			"url":                 "https://github.com/multica-ai/multica",
 			"default_branch_hint": "main",
 		}
-		ref, has, err := buildResourceRefFromFlags(cmd, "github_repo", existing)
+		ref, has, err := buildResourceRefFromFlags(cmd, "git_repo", existing)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -96,7 +96,7 @@ func TestBuildResourceRefFromFlagsGithubMergesHint(t *testing.T) {
 	t.Run("hint-only with no existing url fails fast", func(t *testing.T) {
 		cmd := newProjectResourceUpdateTestCmd()
 		_ = cmd.Flags().Set("default-branch-hint", "main")
-		_, _, err := buildResourceRefFromFlags(cmd, "github_repo", nil)
+		_, _, err := buildResourceRefFromFlags(cmd, "git_repo", nil)
 		if err == nil {
 			t.Fatalf("expected error when no existing url is available to merge")
 		}
@@ -104,7 +104,7 @@ func TestBuildResourceRefFromFlagsGithubMergesHint(t *testing.T) {
 
 	t.Run("no flags set returns has=false", func(t *testing.T) {
 		cmd := newProjectResourceUpdateTestCmd()
-		ref, has, err := buildResourceRefFromFlags(cmd, "github_repo", map[string]any{"url": "https://x"})
+		ref, has, err := buildResourceRefFromFlags(cmd, "git_repo", map[string]any{"url": "https://x"})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
