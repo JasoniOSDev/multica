@@ -425,3 +425,26 @@ All queries filter by `workspace_id`. Membership checks gate access. `X-Workspac
 ## Agent Assignees
 
 Assignees are polymorphic — can be a member or an agent. `assignee_type` + `assignee_id` on issues. Agents render with distinct styling (purple background, robot icon).
+
+## In-house Self-Hosted Deployment (devBox)
+
+> Resume context for agents working on the in-house self-hosted Multica. This repo is a fork (`JasoniOSDev/multica`) maintained separately from upstream (`multica-ai/multica`). Local remotes: `origin` = fork, `upstream` = canonical; sync via `git fetch upstream && git merge upstream/main`.
+
+**Self-hosted server (devBox, internal network):**
+- Host `devBox` = internal IP `10.37.16.72` (SSH alias `devBox`).
+- UI: `http://10.37.16.72:3000` · Backend API: `http://10.37.16.72:18081` (8080/18080 are occupied by `verity-log-serv` on that host).
+- Stack file: `~/.multica/server/docker-compose.devbox.full.yml` (single self-contained compose, `name: multica`). Runs **source-built** images `multica-backend:src` + `multica-web:src`; postgres `pgvector/pgvector:pg17`; all `restart: unless-stopped`.
+- Login: no SMTP configured — a fixed dev verification code lives in devBox's `.env` (`MULTICA_DEV_VERIFICATION_CODE`, with `APP_ENV=development`). Any email + that code signs in.
+
+**Internal-network build constraints (mirrors required):**
+- devBox cannot reach Docker Hub, `proxy.golang.org`, or Google Fonts. Mirrors in use: postgres via `docker.m.daocloud.io`, backend/web base images via `ghcr.nju.edu.cn`, Go modules via `GOPROXY=goproxy.cn` (set in the backend `Dockerfile`).
+- **Backend** rebuilds natively on devBox: `cd ~/.multica/server && docker compose -f docker-compose.devbox.full.yml up -d --build backend`.
+- **Frontend** uses `next/font/google` (build-time Google Fonts fetch) which devBox can't reach, so build it on an internet-connected host: `docker buildx build --platform linux/amd64 -f Dockerfile.web -t multica-web:src .`, then `docker save multica-web:src | ssh devBox 'docker load'` and recreate the frontend container. (Switching to `next/font/local` would enable devBox-native web builds.)
+
+**Native `ccrcode` provider (this fork, `feat/ccrcode`):**
+- claude-code-router (`ccr code`) is registered as a first-class, claude-compatible provider so a single daemon exposes both `claude` and `ccrcode` runtimes. See `server/pkg/agent/ccrcode.go` and the `"claude", "ccrcode"` branches in the daemon/agent packages.
+
+**Local agent runtime (Mac):**
+- Source-built CLI: `make build` → `server/bin/multica`; alias `~/.local/bin/multica-dev` (requires a Go toolchain).
+- Daemon connects to devBox under an isolated profile: `multica-dev --profile devbox ...`, authenticated to account `417033420@qq.com`, watching workspace **Happy_Inhouse**. Detected runtimes: claude / codex / openclaw / ccrcode.
+- Gotcha: the desktop runtime injects `MULTICA_*` env vars (token + server URL pointing at the cloud) that override profile config — strip all `MULTICA_*` env when driving the `devbox` profile (`env -u MULTICA_...`).
