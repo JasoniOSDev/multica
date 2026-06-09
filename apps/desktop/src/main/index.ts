@@ -300,7 +300,8 @@ if (is.dev) {
   // avoiding config/session collisions with the stock "Multica" install.
   // Unset → unchanged "Multica" behavior.
   app.setName(
-    (import.meta.env as Record<string, string | undefined>).VITE_APP_NAME ||
+    (import.meta.env as unknown as Record<string, string | undefined>)
+      .VITE_APP_NAME ||
       "Multica",
   );
 }
