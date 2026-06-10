@@ -50,7 +50,7 @@ func TestFindLocalDirectoryAssignment(t *testing.T) {
 
 	t.Run("non-matching type is skipped", func(t *testing.T) {
 		got, err := findLocalDirectoryAssignment([]ProjectResourceData{
-			{ID: "r1", ResourceType: "git_repo", ResourceRef: json.RawMessage(`{"url":"https://x"}`)},
+			{ID: "r1", ResourceType: "github_repo", ResourceRef: json.RawMessage(`{"url":"https://x"}`)},
 		}, thisDaemon)
 		if err != nil || got != nil {
 			t.Fatalf("expected (nil, nil), got (%+v, %v)", got, err)

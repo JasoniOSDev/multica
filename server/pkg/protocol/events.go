@@ -118,12 +118,12 @@ const (
 	EventDaemonRegister      = "daemon:register"
 	EventDaemonTaskAvailable = "daemon:task_available"
 
-	// GitLab integration events
-	EventGitLabConnectionUpdated = "gitlab_connection:updated"
-	EventGitLabConnectionDeleted = "gitlab_connection:deleted"
-	EventMergeRequestLinked      = "merge_request:linked"
-	EventMergeRequestUpdated     = "merge_request:updated"
-	EventMergeRequestUnlinked    = "merge_request:unlinked"
+	// GitHub integration events
+	EventGitHubInstallationCreated = "github_installation:created"
+	EventGitHubInstallationDeleted = "github_installation:deleted"
+	EventPullRequestLinked         = "pull_request:linked"
+	EventPullRequestUpdated        = "pull_request:updated"
+	EventPullRequestUnlinked       = "pull_request:unlinked"
 
 	// Lark integration events. `created` covers both first-install
 	// (UNIQUE on (workspace_id, agent_id) means at most one row per

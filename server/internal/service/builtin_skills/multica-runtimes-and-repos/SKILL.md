@@ -31,7 +31,7 @@ The chain is:
 4. daemon polls/claims the task;
 5. server returns task context, repos, project resources, prior session/workdir hints, and task token;
 6. daemon prepares a workdir and launches the provider CLI;
-7. `multica repo checkout` talks to the local daemon, not directly to the git remote.
+7. `multica repo checkout` talks to the local daemon, not directly to GitHub.
 
 ## CLI
 
@@ -68,7 +68,7 @@ The runtime brief lists repos available to this task. Treat that list as the aut
 Workspace repos and project resources are not the same thing:
 
 - workspace repo metadata can appear in workspace context;
-- `git_repo` project resources are durable project context and can affect future tasks;
+- `github_repo` project resources are durable project context and can affect future tasks;
 - `local_directory` resources point at a path owned by a daemon and carry local-machine assumptions.
 
 Do not add a project resource just because `repo checkout` failed. First determine whether the user asked for durable project context or just a task checkout.

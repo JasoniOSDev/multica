@@ -22,10 +22,10 @@ type RepoContextForEnv struct {
 // project. The resource_ref payload is type-specific JSON; the agent reads
 // resources.json on disk for the full structure. This struct only carries
 // fields the meta-skill template needs to render a human-readable summary
-// (URL for git_repo, generic label otherwise).
+// (URL for github_repo, generic label otherwise).
 type ProjectResourceForEnv struct {
 	ID           string          // server-assigned UUID
-	ResourceType string          // e.g. "git_repo"
+	ResourceType string          // e.g. "github_repo"
 	ResourceRef  json.RawMessage // raw JSONB payload from the API
 	Label        string          // optional user-supplied label
 }

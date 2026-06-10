@@ -64,7 +64,7 @@ var (
 //
 // allowedRepoURLs covers the workspace-level repo bindings; it gets rebuilt on
 // every refresh from the server. taskRepoURLs covers repos that the server
-// surfaced through a per-task claim (project git_repo resources today,
+// surfaced through a per-task claim (project github_repo resources today,
 // possibly other typed sources later) — those don't show up in
 // GetWorkspaceRepos, so they would be wiped on refresh if we shared one map.
 type workspaceState struct {
@@ -876,7 +876,7 @@ func (d *Daemon) workspaceCoAuthoredByEnabled(workspaceID string) bool {
 	return *s.CoAuthoredByEnabled
 }
 
-// registerTaskRepos merges task-scoped repos (e.g. project git_repo
+// registerTaskRepos merges task-scoped repos (e.g. project github_repo
 // resources lifted into resp.Repos by the claim handler) into the workspace's
 // allowlist and kicks off a cache sync for any URLs that aren't yet cached.
 //
@@ -2590,7 +2590,7 @@ func (d *Daemon) runTask(ctx context.Context, task Task, provider string, slot i
 	}
 
 	// task.Repos is the authoritative repo list for this task — when the
-	// claimed task belongs to a project with git_repo resources the server
+	// claimed task belongs to a project with github_repo resources the server
 	// has already narrowed it to project repos only. Make sure those URLs are
 	// in the per-workspace allowlist and the local cache, otherwise
 	// `multica repo checkout` would reject project-only URLs that aren't also

@@ -1181,10 +1181,10 @@ func (h *Handler) ClaimTaskByRuntime(w http.ResponseWriter, r *http.Request) {
 
 	// Include workspace ID and repos so the daemon can set up worktrees.
 	//
-	// Repo precedence: project-bound git_repo resources override workspace
+	// Repo precedence: project-bound github_repo resources override workspace
 	// repos when present. Mixing both would just confuse the agent — if a
 	// project explicitly attached its repos, those are the authoritative set
-	// for issues inside that project. When the project has no git_repo
+	// for issues inside that project. When the project has no github_repo
 	// resources (or no project at all), we fall back to the workspace repos.
 	if task.IssueID.Valid {
 		if issue, err := h.Queries.GetIssue(r.Context(), task.IssueID); err == nil {
@@ -1240,10 +1240,10 @@ func (h *Handler) ClaimTaskByRuntime(w http.ResponseWriter, r *http.Request) {
 							ResourceRef:  ref,
 							Label:        label,
 						})
-						// Lift git_repo resources into the daemon's repo list
+						// Lift github_repo resources into the daemon's repo list
 						// so `multica repo checkout` and the meta-skill render
 						// them as the issue's repos.
-						if row.ResourceType == "git_repo" {
+						if row.ResourceType == "github_repo" {
 							var payload struct {
 								URL string `json:"url"`
 							}
@@ -1488,7 +1488,7 @@ func (h *Handler) ClaimTaskByRuntime(w http.ResponseWriter, r *http.Request) {
 			// and resources to the daemon so the agent has the same context
 			// it would for an issue-bound task: the prompt template can name
 			// the project, and `multica repo checkout` sees the project's
-			// git_repo resources instead of the workspace fallback.
+			// github_repo resources instead of the workspace fallback.
 			var projectRepos []RepoData
 			if qc.ProjectID != "" {
 				projectUUID, err := util.ParseUUID(qc.ProjectID)
@@ -1514,7 +1514,7 @@ func (h *Handler) ClaimTaskByRuntime(w http.ResponseWriter, r *http.Request) {
 								ResourceRef:  ref,
 								Label:        label,
 							})
-							if row.ResourceType == "git_repo" {
+							if row.ResourceType == "github_repo" {
 								var payload struct {
 									URL string `json:"url"`
 								}

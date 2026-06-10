@@ -1714,7 +1714,7 @@ func TestStartTask_AutopilotRunOnlyTask_ResolvesWorkspace(t *testing.T) {
 	}
 }
 
-// ClaimTaskByRuntime must surface the issue's project git_repo resources
+// ClaimTaskByRuntime must surface the issue's project github_repo resources
 // as resp.Repos and hide the workspace-bound repos. Without this the agent
 // would see two repo lists in the meta-skill and have no signal about which
 // belongs to the current issue.
@@ -1731,7 +1731,7 @@ func TestClaimTask_ProjectGithubReposOverrideWorkspaceRepos(t *testing.T) {
 		{"url": "https://github.com/example/workspace-repo-b", "description": "ws b"},
 	})
 
-	// Project + project_resource(git_repo) with a URL that is NOT in the
+	// Project + project_resource(github_repo) with a URL that is NOT in the
 	// workspace's repos list.
 	var projectID string
 	if err := testPool.QueryRow(ctx, `
@@ -1745,7 +1745,7 @@ func TestClaimTask_ProjectGithubReposOverrideWorkspaceRepos(t *testing.T) {
 	if _, err := testPool.Exec(ctx, `
 		INSERT INTO project_resource (
 			project_id, workspace_id, resource_type, resource_ref, position
-		) VALUES ($1, $2, 'git_repo', $3::jsonb, 0)
+		) VALUES ($1, $2, 'github_repo', $3::jsonb, 0)
 	`, projectID, testWorkspaceID, `{"url":"`+projectRepoURL+`"}`); err != nil {
 		t.Fatalf("create project_resource: %v", err)
 	}
@@ -1818,7 +1818,7 @@ func TestClaimTask_ProjectGithubReposOverrideWorkspaceRepos(t *testing.T) {
 	}
 }
 
-// When the issue's project has no git_repo resources, the claim handler
+// When the issue's project has no github_repo resources, the claim handler
 // must fall back to workspace repos (the pre-override behavior).
 func TestClaimTask_ProjectWithoutRepos_FallsBackToWorkspaceRepos(t *testing.T) {
 	if testHandler == nil {

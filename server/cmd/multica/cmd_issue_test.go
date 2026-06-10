@@ -318,13 +318,13 @@ func TestRunIssueCreateShowsDuplicateMessage(t *testing.T) {
 	}
 }
 
-func newIssueMergeRequestsTestCmd() *cobra.Command {
-	cmd := &cobra.Command{Use: "merge-requests"}
+func newIssuePullRequestsTestCmd() *cobra.Command {
+	cmd := &cobra.Command{Use: "pull-requests"}
 	cmd.Flags().String("output", "table", "")
 	return cmd
 }
 
-func TestRunIssueMergeRequestsListsLinkedMRsAsJSON(t *testing.T) {
+func TestRunIssuePullRequestsListsLinkedPRsAsJSON(t *testing.T) {
 	var gotPaths []string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotPaths = append(gotPaths, r.URL.Path)
@@ -333,16 +333,16 @@ func TestRunIssueMergeRequestsListsLinkedMRsAsJSON(t *testing.T) {
 			json.NewEncoder(w).Encode(map[string]any{
 				"id":         "issue-uuid",
 				"identifier": "MUL-2818",
-				"title":      "CLI MR lookup",
+				"title":      "CLI PR lookup",
 			})
-		case "/api/issues/issue-uuid/merge-requests":
+		case "/api/issues/issue-uuid/pull-requests":
 			json.NewEncoder(w).Encode(map[string]any{
-				"merge_requests": []map[string]any{
+				"pull_requests": []map[string]any{
 					{
-						"web_url": "https://gitlab.example.com/group/repo/-/merge_requests/42",
-						"iid":     float64(42),
-						"state":   "opened",
-						"title":   "MUL-2818 add issue MR CLI",
+						"url":    "https://github.com/multica-ai/multica/pull/42",
+						"number": float64(42),
+						"state":  "open",
+						"title":  "MUL-2818 add issue PR CLI",
 					},
 				},
 			})
@@ -356,53 +356,53 @@ func TestRunIssueMergeRequestsListsLinkedMRsAsJSON(t *testing.T) {
 	t.Setenv("MULTICA_WORKSPACE_ID", "ws-1")
 	t.Setenv("MULTICA_TOKEN", "test-token")
 
-	cmd := newIssueMergeRequestsTestCmd()
+	cmd := newIssuePullRequestsTestCmd()
 	_ = cmd.Flags().Set("output", "json")
 	old := os.Stdout
 	r, w, _ := os.Pipe()
 	os.Stdout = w
-	err := runIssueMergeRequests(cmd, []string{"MUL-2818"})
+	err := runIssuePullRequests(cmd, []string{"MUL-2818"})
 	_ = w.Close()
 	os.Stdout = old
 	out, _ := io.ReadAll(r)
 	if err != nil {
-		t.Fatalf("runIssueMergeRequests: %v", err)
+		t.Fatalf("runIssuePullRequests: %v", err)
 	}
 
-	if want := []string{"/api/issues/MUL-2818", "/api/issues/issue-uuid/merge-requests"}; fmt.Sprint(gotPaths) != fmt.Sprint(want) {
+	if want := []string{"/api/issues/MUL-2818", "/api/issues/issue-uuid/pull-requests"}; fmt.Sprint(gotPaths) != fmt.Sprint(want) {
 		t.Fatalf("paths = %v, want %v", gotPaths, want)
 	}
 	var payload map[string]any
 	if err := json.Unmarshal(out, &payload); err != nil {
 		t.Fatalf("decode JSON output: %v\n%s", err, string(out))
 	}
-	mrs, _ := payload["merge_requests"].([]any)
-	if len(mrs) != 1 {
-		t.Fatalf("merge_requests length = %d, want 1", len(mrs))
+	prs, _ := payload["pull_requests"].([]any)
+	if len(prs) != 1 {
+		t.Fatalf("pull_requests length = %d, want 1", len(prs))
 	}
-	mr, _ := mrs[0].(map[string]any)
-	if mr["web_url"] != "https://gitlab.example.com/group/repo/-/merge_requests/42" || mr["iid"] != float64(42) || mr["state"] != "opened" || mr["title"] != "MUL-2818 add issue MR CLI" {
-		t.Fatalf("unexpected MR payload: %#v", mr)
+	pr, _ := prs[0].(map[string]any)
+	if pr["url"] != "https://github.com/multica-ai/multica/pull/42" || pr["number"] != float64(42) || pr["state"] != "open" || pr["title"] != "MUL-2818 add issue PR CLI" {
+		t.Fatalf("unexpected PR payload: %#v", pr)
 	}
 }
 
-func TestRunIssueMergeRequestsTableIncludesCoreFields(t *testing.T) {
-	mrs := []map[string]any{{
-		"web_url": "https://gitlab.example.com/group/repo/-/merge_requests/42",
-		"iid":     float64(42),
-		"state":   "opened",
-		"title":   "MUL-2818 add issue MR CLI",
+func TestRunIssuePullRequestsTableIncludesCoreFields(t *testing.T) {
+	prs := []map[string]any{{
+		"url":    "https://github.com/multica-ai/multica/pull/42",
+		"number": float64(42),
+		"state":  "open",
+		"title":  "MUL-2818 add issue PR CLI",
 	}}
 
 	old := os.Stdout
 	r, w, _ := os.Pipe()
 	os.Stdout = w
-	printIssueMergeRequestsTable(mrs)
+	printIssuePullRequestsTable(prs)
 	_ = w.Close()
 	os.Stdout = old
 	out, _ := io.ReadAll(r)
 	text := string(out)
-	for _, want := range []string{"IID", "STATE", "TITLE", "URL", "42", "opened", "MUL-2818 add issue MR CLI", "https://gitlab.example.com/group/repo/-/merge_requests/42"} {
+	for _, want := range []string{"NUMBER", "STATE", "TITLE", "URL", "42", "open", "MUL-2818 add issue PR CLI", "https://github.com/multica-ai/multica/pull/42"} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("table output missing %q:\n%s", want, text)
 		}

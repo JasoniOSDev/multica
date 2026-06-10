@@ -72,7 +72,7 @@ var projectResourceListCmd = &cobra.Command{
 
 var projectResourceAddCmd = &cobra.Command{
 	Use:   "add <project-id>",
-	Short: "Attach a resource to a project (e.g. --type git_repo --url <url>)",
+	Short: "Attach a resource to a project (e.g. --type github_repo --url <url>)",
 	Args:  exactArgs(1),
 	RunE:  runProjectResourceAdd,
 }
@@ -123,7 +123,7 @@ func init() {
 	projectCreateCmd.Flags().String("status", "", "Project status")
 	projectCreateCmd.Flags().String("icon", "", "Project icon (emoji)")
 	projectCreateCmd.Flags().String("lead", "", "Lead name (member or agent)")
-	projectCreateCmd.Flags().StringArray("repo", nil, "Attach a git_repo resource by URL (may be repeated)")
+	projectCreateCmd.Flags().StringArray("repo", nil, "Attach a github_repo resource by URL (may be repeated)")
 	projectCreateCmd.Flags().String("output", "json", "Output format: table or json")
 
 	// project resource list
@@ -131,11 +131,11 @@ func init() {
 	projectResourceListCmd.Flags().Bool("full-id", false, "Show full UUIDs in table output")
 
 	// project resource add — generic shape: any --type with a JSON --ref payload
-	// works without further CLI changes. git_repo is supported via the
+	// works without further CLI changes. github_repo is supported via the
 	// dedicated --url / --default-branch-hint shortcuts as a convenience.
-	projectResourceAddCmd.Flags().String("type", "git_repo", "Resource type (e.g. git_repo, local_directory — see docs)")
-	projectResourceAddCmd.Flags().String("url", "", "Shortcut: the repo URL (only used when --type git_repo)")
-	projectResourceAddCmd.Flags().String("default-branch-hint", "", "Shortcut: optional default branch hint (only used when --type git_repo)")
+	projectResourceAddCmd.Flags().String("type", "github_repo", "Resource type (e.g. github_repo, local_directory — see docs)")
+	projectResourceAddCmd.Flags().String("url", "", "Shortcut: the repo URL (only used when --type github_repo)")
+	projectResourceAddCmd.Flags().String("default-branch-hint", "", "Shortcut: optional default branch hint (only used when --type github_repo)")
 	projectResourceAddCmd.Flags().String("local-path", "", "Shortcut: absolute path to the working directory (only used when --type local_directory)")
 	projectResourceAddCmd.Flags().String("daemon-id", "", "Shortcut: id of the daemon that owns the local path (only used when --type local_directory)")
 	projectResourceAddCmd.Flags().String("ref-label", "", "Shortcut: optional label embedded in resource_ref (only used when --type local_directory)")
@@ -145,8 +145,8 @@ func init() {
 
 	// project resource update — mirrors `add` flags, but every field is
 	// optional so the caller can edit one thing at a time.
-	projectResourceUpdateCmd.Flags().String("url", "", "Shortcut: new repo URL (git_repo)")
-	projectResourceUpdateCmd.Flags().String("default-branch-hint", "", "Shortcut: new default branch hint (git_repo)")
+	projectResourceUpdateCmd.Flags().String("url", "", "Shortcut: new repo URL (github_repo)")
+	projectResourceUpdateCmd.Flags().String("default-branch-hint", "", "Shortcut: new default branch hint (github_repo)")
 	projectResourceUpdateCmd.Flags().String("local-path", "", "Shortcut: new absolute local path (local_directory)")
 	projectResourceUpdateCmd.Flags().String("daemon-id", "", "Shortcut: new daemon id (local_directory)")
 	projectResourceUpdateCmd.Flags().String("ref-label", "", "Shortcut: new label embedded in resource_ref (local_directory)")
@@ -329,7 +329,7 @@ func runProjectCreate(cmd *cobra.Command, _ []string) error {
 				continue
 			}
 			resources = append(resources, map[string]any{
-				"resource_type": "git_repo",
+				"resource_type": "github_repo",
 				"resource_ref":  map[string]any{"url": repoURL},
 			})
 		}
@@ -556,11 +556,11 @@ func runProjectResourceAdd(cmd *cobra.Command, args []string) error {
 		body["resource_ref"] = ref
 	} else {
 		switch resourceType {
-		case "git_repo":
+		case "github_repo":
 			urlVal, _ := cmd.Flags().GetString("url")
 			urlVal = strings.TrimSpace(urlVal)
 			if urlVal == "" {
-				return fmt.Errorf("git_repo requires --url (or pass a JSON payload via --ref)")
+				return fmt.Errorf("github_repo requires --url (or pass a JSON payload via --ref)")
 			}
 			ref := map[string]any{"url": urlVal}
 			if hint, _ := cmd.Flags().GetString("default-branch-hint"); hint != "" {
@@ -731,7 +731,7 @@ func runProjectResourceUpdate(cmd *cobra.Command, args []string) error {
 // required fields are still rejected.
 func buildResourceRefFromFlags(cmd *cobra.Command, resourceType string, existingRef map[string]any) (map[string]any, bool, error) {
 	switch resourceType {
-	case "git_repo":
+	case "github_repo":
 		urlSet := cmd.Flags().Changed("url")
 		hintSet := cmd.Flags().Changed("default-branch-hint")
 		if !urlSet && !hintSet {
@@ -765,7 +765,7 @@ func buildResourceRefFromFlags(cmd *cobra.Command, resourceType string, existing
 			}
 		}
 		if _, ok := ref["url"]; !ok {
-			return nil, false, fmt.Errorf("git_repo: --url is required (no existing url to merge with)")
+			return nil, false, fmt.Errorf("github_repo: --url is required (no existing url to merge with)")
 		}
 		return ref, true, nil
 	case "local_directory":
@@ -859,7 +859,7 @@ func runProjectResourceRemove(cmd *cobra.Command, args []string) error {
 }
 
 // summarizeResourceRef extracts the most useful single string from a
-// resource_ref object — for git_repo this is the URL; for
+// resource_ref object — for github_repo this is the URL; for
 // local_directory it is the local path.
 func summarizeResourceRef(raw any) string {
 	m, ok := raw.(map[string]any)

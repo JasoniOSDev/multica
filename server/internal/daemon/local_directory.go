@@ -43,7 +43,7 @@ type localDirectoryAssignment struct {
 // findLocalDirectoryAssignment scans the task's project resources for one of
 // type local_directory whose daemon_id matches this daemon. Returns nil
 // (without error) when no such resource exists — the task takes the regular
-// git_repo / worktree code path. Returns an error only when the matching
+// github_repo / worktree code path. Returns an error only when the matching
 // resource is structurally broken (bad JSON, missing fields) OR when more
 // than one resource is pinned to this daemon — that's a server-side
 // invariant violation, and silently picking the first match would let the

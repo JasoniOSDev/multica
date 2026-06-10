@@ -155,7 +155,7 @@ func TestPrepareWithProjectResources(t *testing.T) {
 		ProjectResources: []ProjectResourceForEnv{
 			{
 				ID:           "33333333-4444-5555-6666-777777777777",
-				ResourceType: "git_repo",
+				ResourceType: "github_repo",
 				ResourceRef:  json.RawMessage(`{"url":"https://github.com/multica-ai/multica","default_branch_hint":"main"}`),
 			},
 		},
@@ -197,7 +197,7 @@ func TestPrepareWithProjectResources(t *testing.T) {
 	if got.ProjectTitle != taskCtx.ProjectTitle {
 		t.Errorf("resources.json project_title = %q, want %q", got.ProjectTitle, taskCtx.ProjectTitle)
 	}
-	if len(got.Resources) != 1 || got.Resources[0].ResourceType != "git_repo" {
+	if len(got.Resources) != 1 || got.Resources[0].ResourceType != "github_repo" {
 		t.Fatalf("resources.json resources mismatch: %+v", got.Resources)
 	}
 
@@ -213,7 +213,7 @@ func TestPrepareWithProjectResources(t *testing.T) {
 	for _, want := range []string{
 		"## Project Context",
 		"Agent UX 2026",
-		"Git repo",
+		"GitHub repo",
 		"https://github.com/multica-ai/multica",
 		"default branch: `main`",
 		".multica/project/resources.json",
@@ -224,7 +224,7 @@ func TestPrepareWithProjectResources(t *testing.T) {
 	}
 }
 
-// When the issue's project has its own git_repo resources, those should be
+// When the issue's project has its own github_repo resources, those should be
 // the only repos rendered in the meta-skill — workspace-level repos must not
 // leak into the agent prompt to avoid confusing it about which repo to use.
 //
@@ -245,7 +245,7 @@ func TestProjectReposReplaceWorkspaceReposInMetaSkill(t *testing.T) {
 		ProjectResources: []ProjectResourceForEnv{
 			{
 				ID:           "33333333-4444-5555-6666-777777777777",
-				ResourceType: "git_repo",
+				ResourceType: "github_repo",
 				ResourceRef:  []byte(`{"url":"https://github.com/org/project-repo"}`),
 			},
 		},
