@@ -30,7 +30,7 @@
     "---インボックス---",
     "inbox",
     "---連携---",
-    "gitlab-integration",
+    "github-integration",
     "lark-bot-integration",
     "---セルフホスト & 運用---",
     "environment-variables",
