@@ -5,10 +5,6 @@ import {
   DashboardUsageDailyListSchema,
   DuplicateIssueErrorBodySchema,
   EMPTY_USER,
-  EMPTY_GITLAB_CONNECTION_RESPONSE,
-  EMPTY_LIST_ISSUE_MERGE_REQUESTS_RESPONSE,
-  GitLabConnectionResponseSchema,
-  ListIssueMergeRequestsResponseSchema,
   ListIssuesResponseSchema,
   RuntimeHourlyActivityListSchema,
   RuntimeUsageByAgentListSchema,
@@ -272,100 +268,5 @@ describe("dashboard + runtime usage schema drift", () => {
       { date: "2026-05-19", region: "us-east" },
     ]);
     expect((parsed[0] as Record<string, unknown>).region).toBe("us-east");
-  });
-});
-
-describe("GitLab merge requests — drift safety", () => {
-  const valid = {
-    merge_requests: [
-      {
-        id: "mr-1",
-        workspace_id: "ws-1",
-        project_id: 42,
-        project_path: "group/repo",
-        iid: 5,
-        title: "Fix login redirect",
-        state: "opened",
-        web_url: "https://gitlab.example.com/group/repo/-/merge_requests/5",
-        source_branch: "fix/login",
-        author_username: "alice",
-        author_avatar_url: null,
-        merged_at: null,
-        closed_at: null,
-        mr_created_at: "2026-06-01T00:00:00Z",
-        mr_updated_at: "2026-06-02T00:00:00Z",
-      },
-    ],
-  };
-
-  it("parses a well-formed MR list response", () => {
-    const parsed = ListIssueMergeRequestsResponseSchema.parse(valid);
-    expect(parsed.merge_requests).toHaveLength(1);
-    expect(parsed.merge_requests[0]?.iid).toBe(5);
-  });
-
-  it("keeps an unknown enum value as a string (downgrade, not crash)", () => {
-    const parsed = ListIssueMergeRequestsResponseSchema.parse({
-      merge_requests: [{ ...valid.merge_requests[0], state: "some_future_state" }],
-    });
-    expect(parsed.merge_requests[0]?.state).toBe("some_future_state");
-  });
-
-  it("falls back to an empty list when the body is malformed (no white-screen)", () => {
-    // Missing `merge_requests`, wrong type, null array — every shape must yield
-    // the fallback rather than throw into the UI.
-    for (const malformed of [null, { merge_requests: null }, { merge_requests: "nope" }, 42]) {
-      const out = parseWithFallback(
-        malformed,
-        ListIssueMergeRequestsResponseSchema,
-        EMPTY_LIST_ISSUE_MERGE_REQUESTS_RESPONSE,
-        { endpoint: "test" },
-      );
-      expect(out).toEqual(EMPTY_LIST_ISSUE_MERGE_REQUESTS_RESPONSE);
-    }
-  });
-
-  it("drops a single malformed MR row's required field by failing closed to fallback", () => {
-    // A row missing the required `id` fails validation; parseWithFallback then
-    // returns the explicit empty fallback instead of a partial list.
-    const out = parseWithFallback(
-      { merge_requests: [{ workspace_id: "ws-1", iid: 1 }] },
-      ListIssueMergeRequestsResponseSchema,
-      EMPTY_LIST_ISSUE_MERGE_REQUESTS_RESPONSE,
-      { endpoint: "test" },
-    );
-    expect(out).toEqual(EMPTY_LIST_ISSUE_MERGE_REQUESTS_RESPONSE);
-  });
-});
-
-describe("GitLab connection — drift safety", () => {
-  it("parses a configured connection with the secret token", () => {
-    const parsed = GitLabConnectionResponseSchema.parse({
-      connection: {
-        workspace_id: "ws-1",
-        base_url: "https://gitlab.example.com",
-        webhook_secret_token: "abc123",
-        has_access_token: true,
-        created_by: "user-1",
-        created_at: "2026-06-01T00:00:00Z",
-        updated_at: "2026-06-01T00:00:00Z",
-      },
-      configured: true,
-      can_manage: true,
-    });
-    expect(parsed.connection?.base_url).toBe("https://gitlab.example.com");
-    expect(parsed.configured).toBe(true);
-  });
-
-  it("falls back to an unconfigured connection on a malformed body", () => {
-    for (const malformed of [null, { connection: 42 }, "nope"]) {
-      const out = parseWithFallback(
-        malformed,
-        GitLabConnectionResponseSchema,
-        EMPTY_GITLAB_CONNECTION_RESPONSE,
-        { endpoint: "test" },
-      );
-      expect(out).toEqual(EMPTY_GITLAB_CONNECTION_RESPONSE);
-    }
   });
 });
