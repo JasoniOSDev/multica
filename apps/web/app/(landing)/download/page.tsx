@@ -1,5 +1,10 @@
 import type { Metadata } from "next";
 import { fetchLatestRelease } from "@/features/landing/utils/github-release";
+import {
+  fetchFeedRelease,
+  feedReleasesHref,
+  getDesktopFeedUrl,
+} from "@/features/landing/utils/feed-release";
 import { DownloadClient } from "./download-client";
 
 // Vercel ISR: the server fetch inside fetchLatestRelease carries
@@ -24,6 +29,19 @@ export const metadata: Metadata = {
 };
 
 export default async function DownloadPage() {
+  // Internal-network deploys set DESKTOP_FEED_URL to read the desktop
+  // auto-update feed (latest-mac.yml) instead of GitHub Releases, which
+  // the box can't reach. Unset → unchanged public GitHub behavior.
+  const feedUrl = getDesktopFeedUrl();
+  if (feedUrl) {
+    const release = await fetchFeedRelease(feedUrl);
+    return (
+      <DownloadClient
+        release={release}
+        allReleasesUrl={feedReleasesHref(feedUrl)}
+      />
+    );
+  }
   const release = await fetchLatestRelease();
   return <DownloadClient release={release} />;
 }
