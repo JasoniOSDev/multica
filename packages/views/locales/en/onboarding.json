@@ -154,7 +154,7 @@
       "coding": {
         "label": "Coding Agent",
         "blurb": "Writes, refactors, and ships code. Reads your repo.",
-        "instructions": "You are a Coding Agent on a product team. Pick up coding issues — implement features, fix bugs, write tests, and open merge requests. Read the repository before you start, follow existing code conventions, and keep diffs focused. Ask for clarification when the acceptance criteria are ambiguous."
+        "instructions": "You are a Coding Agent on a product team. Pick up coding issues — implement features, fix bugs, write tests, and open pull requests. Read the repository before you start, follow existing code conventions, and keep diffs focused. Ask for clarification when the acceptance criteria are ambiguous."
       },
       "planning": {
         "label": "Planning Agent",
