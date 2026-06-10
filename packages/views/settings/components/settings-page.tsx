@@ -12,7 +12,7 @@ import {
   Bell,
   Plug,
 } from "lucide-react";
-import { GitHubMark } from "./github-mark";
+import { GitLabMark } from "./gitlab-mark";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@multica/ui/components/ui/tabs";
 import { useCurrentWorkspace } from "@multica/core/paths";
 import { useNavigation } from "../../navigation";
@@ -22,7 +22,7 @@ import { TokensTab } from "./tokens-tab";
 import { WorkspaceTab } from "./workspace-tab";
 import { MembersTab } from "./members-tab";
 import { RepositoriesTab } from "./repositories-tab";
-import { GitHubTab } from "./github-tab";
+import { GitLabTab } from "./gitlab-tab";
 import { IntegrationsTab } from "./integrations-tab";
 import { LabsTab } from "./labs-tab";
 import { NotificationsTab } from "./notifications-tab";
@@ -39,7 +39,7 @@ const ACCOUNT_TAB_ICONS = {
 const WORKSPACE_TAB_KEYS = [
   "general",
   "repositories",
-  "github",
+  "gitlab",
   "integrations",
   "labs",
   "members",
@@ -47,7 +47,7 @@ const WORKSPACE_TAB_KEYS = [
 const WORKSPACE_TAB_VALUES = {
   general: "workspace",
   repositories: "repositories",
-  github: "github",
+  gitlab: "gitlab",
   integrations: "integrations",
   labs: "labs",
   members: "members",
@@ -55,7 +55,7 @@ const WORKSPACE_TAB_VALUES = {
 const WORKSPACE_TAB_ICONS = {
   general: Settings,
   repositories: FolderGit2,
-  github: GitHubMark,
+  gitlab: GitLabMark,
   integrations: Plug,
   labs: FlaskConical,
   members: Users,
@@ -70,6 +70,7 @@ const TAB_QUERY_KEY = "tab";
 // tab; it now lives inside Integrations.
 const LEGACY_WORKSPACE_TAB_REDIRECTS: Record<string, string> = {
   lark: "integrations",
+  github: "gitlab",
 };
 
 export interface ExtraSettingsTab {
@@ -173,7 +174,7 @@ export function SettingsPage({ extraAccountTabs }: SettingsPageProps = {}) {
           <TabsContent value="tokens"><TokensTab /></TabsContent>
           <TabsContent value="workspace"><WorkspaceTab /></TabsContent>
           <TabsContent value="repositories"><RepositoriesTab /></TabsContent>
-          <TabsContent value="github"><GitHubTab /></TabsContent>
+          <TabsContent value="gitlab"><GitLabTab /></TabsContent>
           <TabsContent value="integrations"><IntegrationsTab /></TabsContent>
           <TabsContent value="labs"><LabsTab /></TabsContent>
           <TabsContent value="members"><MembersTab /></TabsContent>

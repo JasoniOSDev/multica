@@ -97,9 +97,9 @@ import type {
   WebhookDelivery,
   NotificationPreferenceResponse,
   NotificationPreferences,
-  GitHubPullRequest,
-  ListGitHubInstallationsResponse,
-  GitHubConnectResponse,
+  GitLabConnectionResponse,
+  UpdateGitLabConnectionRequest,
+  ListIssueMergeRequestsResponse,
   ListLarkInstallationsResponse,
   BeginLarkInstallResponse,
   LarkInstallStatusResponse,
@@ -188,6 +188,10 @@ import {
   EMPTY_CREATE_BILLING_CHECKOUT_SESSION_RESPONSE,
   EMPTY_BILLING_CHECKOUT_SESSION_STATUS,
   EMPTY_CREATE_BILLING_PORTAL_SESSION_RESPONSE,
+  GitLabConnectionResponseSchema,
+  EMPTY_GITLAB_CONNECTION_RESPONSE,
+  ListIssueMergeRequestsResponseSchema,
+  EMPTY_LIST_ISSUE_MERGE_REQUESTS_RESPONSE,
 } from "./schemas";
 
 /** Identifies the calling client to the server.
@@ -2041,23 +2045,41 @@ export class ApiClient {
     );
   }
 
-  // GitHub integration
-  async getGitHubConnectURL(workspaceId: string): Promise<GitHubConnectResponse> {
-    return this.fetch(`/api/workspaces/${workspaceId}/github/connect`);
+  // GitLab integration (self-hosted, workspace-scoped connection)
+  async getGitLabConnection(workspaceId: string): Promise<GitLabConnectionResponse> {
+    const raw = await this.fetch(`/api/workspaces/${workspaceId}/gitlab/connection`);
+    return parseWithFallback(raw, GitLabConnectionResponseSchema, EMPTY_GITLAB_CONNECTION_RESPONSE, {
+      endpoint: "GET /api/workspaces/:id/gitlab/connection",
+    });
   }
 
-  async listGitHubInstallations(workspaceId: string): Promise<ListGitHubInstallationsResponse> {
-    return this.fetch(`/api/workspaces/${workspaceId}/github/installations`);
+  async updateGitLabConnection(
+    workspaceId: string,
+    body: UpdateGitLabConnectionRequest,
+  ): Promise<GitLabConnectionResponse> {
+    const raw = await this.fetch(`/api/workspaces/${workspaceId}/gitlab/connection`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    });
+    return parseWithFallback(raw, GitLabConnectionResponseSchema, EMPTY_GITLAB_CONNECTION_RESPONSE, {
+      endpoint: "PUT /api/workspaces/:id/gitlab/connection",
+    });
   }
 
-  async deleteGitHubInstallation(workspaceId: string, installationId: string): Promise<void> {
-    await this.fetch(`/api/workspaces/${workspaceId}/github/installations/${installationId}`, {
+  async deleteGitLabConnection(workspaceId: string): Promise<void> {
+    await this.fetch(`/api/workspaces/${workspaceId}/gitlab/connection`, {
       method: "DELETE",
     });
   }
 
-  async listIssuePullRequests(issueId: string): Promise<{ pull_requests: GitHubPullRequest[] }> {
-    return this.fetch(`/api/issues/${issueId}/pull-requests`);
+  async listIssueMergeRequests(issueId: string): Promise<ListIssueMergeRequestsResponse> {
+    const raw = await this.fetch(`/api/issues/${issueId}/merge-requests`);
+    return parseWithFallback(
+      raw,
+      ListIssueMergeRequestsResponseSchema,
+      EMPTY_LIST_ISSUE_MERGE_REQUESTS_RESPONSE,
+      { endpoint: "GET /api/issues/:id/merge-requests" },
+    );
   }
 
   // Lark integration

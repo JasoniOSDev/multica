@@ -82,8 +82,10 @@ services:
       ALLOWED_EMAILS: ${ALLOWED_EMAILS:-}
       ALLOWED_EMAIL_DOMAINS: ${ALLOWED_EMAIL_DOMAINS:-}
       DISABLE_WORKSPACE_CREATION: ${DISABLE_WORKSPACE_CREATION:-}
-      GITHUB_APP_SLUG: ${GITHUB_APP_SLUG:-}
-      GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET:-}
+      # Optional: encrypts a workspace's GitLab personal access token at
+      # rest (base64 32-byte key). The GitLab connection itself is set up
+      # per workspace in Settings → GitLab. See docs/gitlab-integration.
+      MULTICA_GITLAB_SECRET_KEY: ${MULTICA_GITLAB_SECRET_KEY:-}
       # Public URL the API is reachable at from the open internet, no
       # trailing slash. Used to mint absolute webhook URLs for autopilot
       # webhook triggers. Leave unset behind a same-origin reverse proxy

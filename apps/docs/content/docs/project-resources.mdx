@@ -12,22 +12,22 @@ The result: the agent knows which repo to check out (or which local directory to
 A project is no longer just a label. It is a small **resource container**:
 
 - A project has 0..N **resources**.
-- A resource has a `resource_type` (e.g. `github_repo`, `local_directory`) and a `resource_ref` (a JSON payload typed by `resource_type`).
+- A resource has a `resource_type` (e.g. `git_repo`, `local_directory`) and a `resource_ref` (a JSON payload typed by `resource_type`).
 - New resource types add a string + a handler. **No schema migration. No frontend rewrite.**
 
 This shape is intentional — it's the same pattern Multica already uses for agent providers: a `type` discriminator and a typed payload. It keeps the schema stable so adding "Notion page", "Google Doc", "uploaded file", or "external URL" later is a small, additive change.
 
-Today two resource types ship: [`github_repo`](#resource-type-github_repo) (clone-per-task into an isolated worktree) and [`local_directory`](#resource-type-local_directory) (run directly inside a folder on a specific daemon's machine).
+Today two resource types ship: [`git_repo`](#resource-type-git_repo) (clone-per-task into an isolated worktree) and [`local_directory`](#resource-type-local_directory) (run directly inside a folder on a specific daemon's machine).
 
-## Resource type: `github_repo`
+## Resource type: `git_repo`
 
 The default resource type — checked out per task into an isolated worktree:
 
 ```json
 {
-  "resource_type": "github_repo",
+  "resource_type": "git_repo",
   "resource_ref": {
-    "url": "https://github.com/owner/repo",
+    "url": "https://gitlab.example.com/group/repo",
     "default_branch_hint": "main"
   }
 }
@@ -50,11 +50,11 @@ For repos that can't reasonably be re-cloned per task — multi-gigabyte game ch
 }
 ```
 
-The trade-off vs. `github_repo` is intentional: only the bound daemon can pick up tasks against the directory, and tasks on the same directory run **serially** instead of in parallel. In exchange you keep your existing checkout, your existing branch, your existing dirty state — Multica never re-clones it.
+The trade-off vs. `git_repo` is intentional: only the bound daemon can pick up tasks against the directory, and tasks on the same directory run **serially** instead of in parallel. In exchange you keep your existing checkout, your existing branch, your existing dirty state — Multica never re-clones it.
 
-### When to pick `local_directory` over `github_repo`
+### When to pick `local_directory` over `git_repo`
 
-| Concern | `github_repo` (worktree) | `local_directory` |
+| Concern | `git_repo` (worktree) | `local_directory` |
 | --- | --- | --- |
 | Checkout cost per task | Fresh clone + worktree | None — agent runs in place |
 | Concurrency on the same repo | Many tasks in parallel | One at a time per directory |
@@ -67,7 +67,7 @@ Pick `local_directory` when **either** of these matches:
 1. **Re-cloning is prohibitively expensive** — a multi-gigabyte game checkout, a monorepo with heavy LFS assets, or anything where the per-task `git clone` would dominate the actual work. You trade concurrency for a clone-free run.
 2. **Your changes are fine-grained and you want to review them locally as they happen** — you're iterating on a single component, you want to flip between the agent's edits and your editor every few minutes, and you'd rather have your existing checkout be the source of truth than a per-task worktree you have to dig out of `~/multica_workspaces/`.
 
-The trade-off you accept in both cases is the same: **this version ships no file-level write lock.** The per-directory serial gate (one task at a time on the same folder) is the only protection against agents in two different issues touching the same files at the same time. If you point two issues' agents at the same `local_directory`, their tasks queue rather than parallelise — that's by design. If you need real parallelism on the same codebase, stay on `github_repo`.
+The trade-off you accept in both cases is the same: **this version ships no file-level write lock.** The per-directory serial gate (one task at a time on the same folder) is the only protection against agents in two different issues touching the same files at the same time. If you point two issues' agents at the same `local_directory`, their tasks queue rather than parallelise — that's by design. If you need real parallelism on the same codebase, stay on `git_repo`.
 
 ### Attaching a local directory
 
@@ -116,10 +116,10 @@ Different daemons are independent — a shared project can have one `local_direc
 
 Two cross-resource configurations show up in practice:
 
-- **`github_repo` + `local_directory` on the same project.** On the daemon that has a matching `local_directory` binding, the local directory **takes precedence**: the agent runs in your folder, and the daemon does not create or use a `github_repo` worktree for that task. (The per-workspace repo cache may still sync as usual — that's a background behaviour unrelated to this task's working tree.) The `github_repo` URL still appears in `.multica/project/resources.json` and in the agent's `## Repositories` section for reference — but the working tree the agent edits is your local one, not a worktree. On a daemon that has **no** `local_directory` row for this project (different machine, or before that teammate attached one), the task falls back to the usual `github_repo` worktree flow. Effectively the local directory is a per-daemon override of the worktree path.
+- **`git_repo` + `local_directory` on the same project.** On the daemon that has a matching `local_directory` binding, the local directory **takes precedence**: the agent runs in your folder, and the daemon does not create or use a `git_repo` worktree for that task. (The per-workspace repo cache may still sync as usual — that's a background behaviour unrelated to this task's working tree.) The `git_repo` URL still appears in `.multica/project/resources.json` and in the agent's `## Repositories` section for reference — but the working tree the agent edits is your local one, not a worktree. On a daemon that has **no** `local_directory` row for this project (different machine, or before that teammate attached one), the task falls back to the usual `git_repo` worktree flow. Effectively the local directory is a per-daemon override of the worktree path.
 - **Two `local_directory` resources on the same project.** Because each `local_directory` is bound to exactly one daemon, this only happens across two different machines (the API rejects two on the same daemon at attach time, see above). Tasks are routed by the agent's runtime assignment, not by which daemon has a local directory: a task lands on the daemon that owns the receiving agent's runtime, that daemon picks the `local_directory` row matching its own ID, and ignores the rest. There is no load-balancing — if you want a specific machine to run a task, dispatch the agent that's bound to that machine's runtime.
 
-A daemon that has no `local_directory` row for a project that has one bound elsewhere is **not** blocked — its tasks simply proceed via the project's other resources (typically the `github_repo` fallback). The `local_directory` only matters for the daemon it's bound to.
+A daemon that has no `local_directory` row for a project that has one bound elsewhere is **not** blocked — its tasks simply proceed via the project's other resources (typically the `git_repo` fallback). The `local_directory` only matters for the daemon it's bound to.
 
 ### Running tasks against a local directory
 
@@ -142,7 +142,7 @@ The wait is not a timeout — a parked task stays parked until either the lock r
 
 ### v1 limits (will tighten in follow-ups)
 
-The first release deliberately ships with sharper edges than `github_repo`. Expect this list to shrink over time — what's documented here is what's true today:
+The first release deliberately ships with sharper edges than `git_repo`. Expect this list to shrink over time — what's documented here is what's true today:
 
 - **No automatic branch switching.** The agent runs in whatever branch you have checked out. Switch branches before dispatching if it matters.
 - **No dirty-tree protection or auto-commit.** Uncommitted changes are visible to the agent, may be modified in place, and won't be stashed. Treat the directory as a real working tree and commit before risky runs.
@@ -153,7 +153,7 @@ These are tracked as the agent-task-lifecycle follow-up to the local-directory w
 
 ## Attaching repos at project creation
 
-In the **Web** or **Desktop** app, opening *New project* now shows a **Repos** pill alongside Status / Priority / Lead. Selecting workspace-bound repos (or pasting an ad-hoc URL) attaches them as `github_repo` resources the moment the project is created.
+In the **Web** or **Desktop** app, opening *New project* now shows a **Repos** pill alongside Status / Priority / Lead. Selecting workspace-bound repos (or pasting an ad-hoc URL) attaches them as `git_repo` resources the moment the project is created.
 
 From the **CLI**:
 
@@ -167,7 +167,7 @@ multica project create \
 
 # Manage resources later
 multica project resource list <project-id>
-multica project resource add  <project-id> --type github_repo --url <url>
+multica project resource add  <project-id> --type git_repo --url <url>
 multica project resource remove <project-id> <resource-id>
 
 # Generic escape hatch for any resource_type the server understands —
@@ -177,7 +177,7 @@ multica project resource add <project-id> \
   --ref '{"page_id":"…","title":"…"}'
 ```
 
-`--repo` may be repeated; each value is attached as a separate `github_repo` resource.
+`--repo` may be repeated; each value is attached as a separate `git_repo` resource.
 
 ## What the agent sees at runtime
 
@@ -194,7 +194,7 @@ A structured pass-through of the API response, written into the agent's working 
   "resources": [
     {
       "id": "…",
-      "resource_type": "github_repo",
+      "resource_type": "git_repo",
       "resource_ref": {
         "url": "https://github.com/multica-ai/multica",
         "default_branch_hint": "main"
@@ -217,10 +217,10 @@ This issue belongs to **Agent UX 2026**.
 
 Project resources (also written to `.multica/project/resources.json`):
 
-- **GitHub repo**: https://github.com/multica-ai/multica (default branch: `main`)
+- **Git repo**: https://github.com/multica-ai/multica (default branch: `main`)
 
 Resources are pointers — open them only when relevant to the task. For
-`github_repo` resources, use `multica repo checkout <url>` to fetch the code.
+`git_repo` resources, use `multica repo checkout <url>` to fetch the code.
 ```
 
 The text is intentionally minimal. The full payload is on disk; the prompt only orients the agent so it knows the project exists and what's attached.
@@ -246,17 +246,17 @@ The same `project_resource` table and the same three CRUD calls handle every typ
 
 The repo list shown to the agent (`## Repositories` block in `CLAUDE.md` / `AGENTS.md`) is chosen by the daemon claim handler with this precedence:
 
-- **Project has at least one `github_repo` resource** → only those repos are surfaced to the agent. Workspace-bound repos are intentionally hidden so the agent doesn't have to guess which one belongs to this issue.
-- **Project has no `github_repo` resources (or the issue isn't in a project)** → fall back to the workspace's repo list as before.
+- **Project has at least one `git_repo` resource** → only those repos are surfaced to the agent. Workspace-bound repos are intentionally hidden so the agent doesn't have to guess which one belongs to this issue.
+- **Project has no `git_repo` resources (or the issue isn't in a project)** → fall back to the workspace's repo list as before.
 
 This keeps the agent's working set tight: when a project is explicit about its repos, that's the authoritative answer. The structured resource list at `.multica/project/resources.json` always carries the full set, so a skill that wants to inspect everything still can.
 
-The daemon mirrors this on the checkout side: when a task arrives with project-scoped `github_repo` URLs, those URLs are merged into the per-workspace allowlist *and* synced into the local repo cache before the agent spawns. So a project repo URL that isn't bound at the workspace level is still a valid argument to `multica repo checkout` — the daemon won't reject it as "not configured." The allowlist split is internal: workspace-bound URLs and task-scoped URLs are tracked separately, so a workspace-repos refresh doesn't accidentally revoke a project URL mid-run.
+The daemon mirrors this on the checkout side: when a task arrives with project-scoped `git_repo` URLs, those URLs are merged into the per-workspace allowlist *and* synced into the local repo cache before the agent spawns. So a project repo URL that isn't bound at the workspace level is still a valid argument to `multica repo checkout` — the daemon won't reject it as "not configured." The allowlist split is internal: workspace-bound URLs and task-scoped URLs are tracked separately, so a workspace-repos refresh doesn't accidentally revoke a project URL mid-run.
 
 ## What's intentionally **not** in scope here
 
 - **Cross-project sharing.** Each resource lives on exactly one project today.
 - **Per-skill resource scoping.** All resources are visible to every skill on the agent's run; type-aware filtering is a follow-up.
-- **Caching / sync.** `github_repo` is just metadata — checkout still happens via `multica repo checkout` on demand. Cached document text for Notion / Google Docs will arrive with those types.
+- **Caching / sync.** `git_repo` is just metadata — checkout still happens via `multica repo checkout` on demand. Cached document text for Notion / Google Docs will arrive with those types.
 
 These are deliberate omissions — the goal of the first cut is to validate the abstraction with the smallest set of moving parts.

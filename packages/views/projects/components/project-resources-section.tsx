@@ -21,7 +21,7 @@ import {
 import { useWorkspaceId } from "@multica/core/hooks";
 import { useCurrentWorkspace } from "@multica/core/paths";
 import type {
-  GithubRepoResourceRef,
+  GitRepoResourceRef,
   LocalDirectoryResourceRef,
   ProjectResource,
 } from "@multica/core/types";
@@ -51,10 +51,10 @@ import { useT } from "../../i18n";
 //   (1) extending the server validator
 //   (2) extending ProjectResourceType in @multica/core/types
 //   (3) adding a render case in ResourceRow and an add-control here
-function isGithubRef(r: ProjectResource): r is ProjectResource & {
-  resource_ref: GithubRepoResourceRef;
+function isGitRepoRef(r: ProjectResource): r is ProjectResource & {
+  resource_ref: GitRepoResourceRef;
 } {
-  return r.resource_type === "github_repo";
+  return r.resource_type === "git_repo";
 }
 
 function isLocalDirectoryRef(r: ProjectResource): r is ProjectResource & {
@@ -88,7 +88,7 @@ export function ProjectResourcesSection({ projectId }: { projectId: string }) {
   const localDaemonId = daemonStatus.daemonId;
 
   const attachedUrls = new Set(
-    resources.filter(isGithubRef).map((r) => r.resource_ref.url),
+    resources.filter(isGitRepoRef).map((r) => r.resource_ref.url),
   );
   const attachedLocalPaths = new Set(
     resources
@@ -113,7 +113,7 @@ export function ProjectResourcesSection({ projectId }: { projectId: string }) {
   const handleAttach = async (url: string) => {
     try {
       await createResource.mutateAsync({
-        resource_type: "github_repo",
+        resource_type: "git_repo",
         resource_ref: { url },
       });
       toast.success(t(($) => $.resources.toast_attached));
@@ -406,7 +406,7 @@ function ResourceRow({
   onRenameLocalDirectory,
 }: ResourceRowProps) {
   const { t } = useT("projects");
-  if (isGithubRef(resource)) {
+  if (isGitRepoRef(resource)) {
     const ref = resource.resource_ref;
     return (
       <div className="flex items-center gap-2 text-xs group">
