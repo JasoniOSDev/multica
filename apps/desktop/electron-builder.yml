@@ -89,13 +89,21 @@ win:
     - nsis
   artifactName: multica-desktop-${version}-windows-${arch}.${ext}
 publish:
-  provider: github
-  owner: multica-ai
-  repo: multica
-  # Align with our CLI release flow which pre-creates a *published* GitHub
-  # Release via `gh release create`. The electron-builder default of
-  # `releaseType: draft` conflicts with `existingType=release` and causes
-  # uploads of the DMG/ZIP/blockmaps/latest-mac.yml to be silently skipped,
-  # which breaks electron-updater auto-update on installed clients.
-  releaseType: release
+  # In-house (devBox) fork build: point the auto-update feed at an internal
+  # generic server instead of the upstream GitHub release feed. Leaving this
+  # pointed at github/multica-ai/multica would make installed in-house apps
+  # poll the *upstream* release feed and attempt to "update" themselves to an
+  # unrelated public build — discarding the devBox-pinned config. The generic
+  # provider hosts latest-mac.yml + the DMG/ZIP on a static path on devBox so
+  # the binaries never leave the internal network.
+  #
+  # NOTE: macOS silent auto-update (Squirrel.Mac) additionally requires the
+  # app to be signed with a Developer ID Application cert. This in-house build
+  # is unsigned (ad-hoc), so changing the feed alone does NOT enable silent
+  # self-update on macOS — see HAP-52. The feed change is still correct: it
+  # stops the app from reaching out to the upstream feed and lets a manual
+  # "check for updates" surface the internal build.
+  provider: generic
+  url: http://10.37.16.72:18082/desktop/
+  channel: latest
 npmRebuild: false
