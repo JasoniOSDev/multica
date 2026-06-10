@@ -200,7 +200,7 @@ export const EMPTY_PROJECT: Project = {
   resource_count: 0,
 };
 
-// Project resources are typed pointers to external resources (today: git
+// Project resources are typed pointers to external resources (today: GitHub
 // repos). resource_ref shape varies per resource_type; lenient on both
 // `resource_type` (so a future type doesn't crash the list) and
 // `resource_ref` (passes through unchanged for the renderer to dispatch on).

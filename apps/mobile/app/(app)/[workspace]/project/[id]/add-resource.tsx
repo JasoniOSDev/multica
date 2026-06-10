@@ -1,11 +1,11 @@
 /**
- * Add-resource (Git repository) sheet for a project — presented as a formSheet
+ * Add-resource (GitHub repo) sheet for a project — presented as a formSheet
  * by the parent Stack. Self-contained: takes the URL + optional label,
  * fires useCreateProjectResource, surfaces errors with Alert.
  *
- * v1 only supports `git_repo` resource type (internal GitLab and any git URL).
- * Loose client-side validation: URL must look like an http(s)/ssh/scp git URL.
- * Server is the canonical validator (validateAndNormalizeResourceRef in Go).
+ * v1 only supports `github_repo` resource type. Loose client-side
+ * validation: URL must look like `https://github.com/owner/repo`. Server
+ * is the canonical validator (validateAndNormalizeResourceRef in Go).
  */
 import { useCallback, useState } from "react";
 import { Alert, Pressable, View } from "react-native";
@@ -14,9 +14,7 @@ import { Text } from "@/components/ui/text";
 import { TextField } from "@/components/ui/text-field";
 import { useCreateProjectResource } from "@/data/mutations/projects";
 
-// Accept https/http, scp-style `git@host:group/repo.git`, and `ssh://` git
-// URLs. Intentionally loose — the Go server is the canonical validator.
-const GIT_URL_PATTERN = /^(https?:\/\/|ssh:\/\/|git@)[^\s]+\/?.*\S/i;
+const GITHUB_PATTERN = /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+(\/|$)/i;
 
 export default function AddResourceRoute() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -25,14 +23,14 @@ export default function AddResourceRoute() {
   const [url, setUrl] = useState("");
   const [label, setLabel] = useState("");
 
-  const valid = GIT_URL_PATTERN.test(url.trim());
+  const valid = GITHUB_PATTERN.test(url.trim());
   const submitting = createResource.isPending;
 
   const onSubmit = useCallback(() => {
     if (!valid || submitting) return;
     createResource.mutate(
       {
-        resource_type: "git_repo",
+        resource_type: "github_repo",
         resource_ref: { url: url.trim() },
         label: label.trim() || undefined,
       },
@@ -73,7 +71,7 @@ export default function AddResourceRoute() {
           <TextField
             value={url}
             onChangeText={setUrl}
-            placeholder="https://gitlab.example.com/group/repo"
+            placeholder="https://github.com/owner/repo"
             autoCapitalize="none"
             autoCorrect={false}
             keyboardType="url"
