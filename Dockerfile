@@ -5,6 +5,15 @@ RUN apk add --no-cache git
 
 WORKDIR /src
 
+# Module proxy override. Defaults to the public proxy, so normal builds are
+# unchanged. Internal-network deploys (e.g. devBox) cannot reach
+# proxy.golang.org/sum.golang.org, so they pass GOPROXY=https://goproxy.cn,direct
+# and GOSUMDB=off through compose build args.
+ARG GOPROXY=https://proxy.golang.org,direct
+ARG GOSUMDB=sum.golang.org
+ENV GOPROXY=${GOPROXY}
+ENV GOSUMDB=${GOSUMDB}
+
 # Cache dependencies
 COPY server/go.mod server/go.sum ./server/
 RUN cd server && go mod download
