@@ -27,6 +27,7 @@ import (
 	"github.com/multica-ai/multica/server/internal/service"
 	"github.com/multica-ai/multica/server/internal/storage"
 	"github.com/multica-ai/multica/server/internal/util"
+	"github.com/multica-ai/multica/server/internal/util/secretbox"
 	db "github.com/multica-ai/multica/server/pkg/db/generated"
 )
 
@@ -122,6 +123,13 @@ type Handler struct {
 	WebhookRateLimiter   WebhookRateLimiter
 	WebhookIPRateLimiter WebhookRateLimiter
 	CloudRuntime         cloudRuntimeProxy
+	// GitLabBox seals/opens the GitLab Personal Access Token stored at rest
+	// on gitlab_connection.access_token_encrypted. Nil when the at-rest key
+	// (MULTICA_GITLAB_SECRET_KEY) is unset; the connection config endpoint
+	// then refuses requests that carry an access_token (503) instead of
+	// persisting it in plaintext. base_url + webhook token configuration work
+	// without it. Wired in cmd/server/router.go after handler.New.
+	GitLabBox *secretbox.Box
 	// Lark integration. All three are nil when the Lark master key
 	// (MULTICA_LARK_SECRET_KEY) is unset; the corresponding HTTP
 	// handlers return 503 in that case so a misconfigured self-host

@@ -171,8 +171,9 @@ func resolveSkillsDir(workDir, provider string, manifest *sidecarManifest) (stri
 // it can match the managed skill roots the prior manifest recorded.
 func skillsDirPath(workDir, provider string) string {
 	switch provider {
-	case "claude":
+	case "claude", "ccrcode":
 		// Claude Code natively discovers skills from .claude/skills/ in the workdir.
+		// ccrcode runs Claude Code via `ccr code`, so it uses the same layout.
 		return filepath.Join(workDir, ".claude", "skills")
 	case "copilot":
 		// GitHub Copilot CLI natively discovers project-level skills from

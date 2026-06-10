@@ -21,7 +21,7 @@ import {
   agentRunCountsKeys,
   agentTasksKeys,
 } from "../agents/queries";
-import { githubKeys } from "../github/queries";
+import { gitlabKeys } from "../gitlab/queries";
 import { larkKeys } from "../lark/queries";
 import {
   onIssueCreated,
@@ -444,18 +444,18 @@ export function useRealtimeSync(
         const wsId = getCurrentWsId();
         if (wsId) qc.invalidateQueries({ queryKey: autopilotKeys.all(wsId) });
       },
-      github_installation: () => {
+      gitlab_connection: () => {
         const wsId = getCurrentWsId();
-        if (wsId) qc.invalidateQueries({ queryKey: githubKeys.installations(wsId) });
+        if (wsId) qc.invalidateQueries({ queryKey: gitlabKeys.connection(wsId) });
       },
       lark_installation: () => {
         const wsId = getCurrentWsId();
         if (wsId) qc.invalidateQueries({ queryKey: larkKeys.installations(wsId) });
       },
-      pull_request: () => {
-        // PR list is keyed by issue id, not workspace, so we invalidate all
-        // PR queries — the open issue detail page will refetch its own list.
-        qc.invalidateQueries({ queryKey: ["github", "pull-requests"] });
+      merge_request: () => {
+        // MR list is keyed by issue id, not workspace, so we invalidate all
+        // MR queries — the open issue detail page will refetch its own list.
+        qc.invalidateQueries({ queryKey: ["gitlab", "merge-requests"] });
       },
       // Powers the agent presence cache: any task lifecycle change
       // (dispatch / completed / failed / cancelled) refreshes the

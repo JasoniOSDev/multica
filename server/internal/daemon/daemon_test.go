@@ -1476,7 +1476,7 @@ func TestEnsureRepoReadyRefreshesOnMiss(t *testing.T) {
 	}
 }
 
-// A project github_repo URL that the workspace itself does not bind must still
+// A project git_repo URL that the workspace itself does not bind must still
 // be allowed for `multica repo checkout` after registerTaskRepos runs. Without
 // this, the new project-repos-override-workspace-repos behavior would surface
 // repos in the meta-skill that the agent then can't actually clone.

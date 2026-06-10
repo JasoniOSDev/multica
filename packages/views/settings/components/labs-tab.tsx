@@ -10,8 +10,8 @@ import {
 } from "@multica/ui/components/ui/empty";
 import { useT } from "../../i18n";
 
-// The Co-authored-by trailer toggle moved into the dedicated GitHub Settings
-// tab (see github-tab.tsx). Labs is kept as a container for future
+// The Co-authored-by trailer toggle moved into the dedicated GitLab Settings
+// tab (see gitlab-tab.tsx). Labs is kept as a container for future
 // experimental flags rather than removed from the IA.
 export function LabsTab() {
   const { t } = useT("settings");

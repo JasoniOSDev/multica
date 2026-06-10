@@ -399,13 +399,16 @@ function main() {
     });
 
     // Step 4: invoke electron-builder for the current target only.
-    // `shell: true` for the same Windows `.cmd` shim reason as the
-    // electron-vite invocation above.
+    // Windows needs `shell: true` to resolve the `.cmd` shim, but on POSIX
+    // a shell mangles builderArgs values that contain spaces or shell
+    // metacharacters (e.g. `-c.productName=Multica In-house` or a
+    // `-c.mac.identity=...(TEAMID)` signing identity). Gate the shell to
+    // Windows so POSIX passes argv verbatim.
     const result = spawnSync("electron-builder", builderArgs, {
       stdio: "inherit",
       cwd: desktopRoot,
       env: envWithLocalBins(),
-      shell: true,
+      shell: process.platform === "win32",
     });
 
     if (result.error) {

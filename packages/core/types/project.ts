@@ -52,12 +52,13 @@ export interface ListProjectsResponse {
 // validateAndNormalizeResourceRef on the server and a renderer in the UI.
 //
 // Known types (UI must default-case unknown server-side additions):
-//   - github_repo: cloud-side git checkout, ref = { url, default_branch_hint? }
+//   - git_repo: cloud-side git checkout of any git URL (internal GitLab, etc.),
+//     ref = { url, default_branch_hint? }
 //   - local_directory: in-place agent execution on a specific daemon,
 //     ref = { local_path, daemon_id, label? }
-export type ProjectResourceType = "github_repo" | "local_directory";
+export type ProjectResourceType = "git_repo" | "local_directory";
 
-export interface GithubRepoResourceRef {
+export interface GitRepoResourceRef {
   url: string;
   default_branch_hint?: string;
 }
@@ -69,7 +70,7 @@ export interface LocalDirectoryResourceRef {
 }
 
 export type ProjectResourceRef =
-  | GithubRepoResourceRef
+  | GitRepoResourceRef
   | LocalDirectoryResourceRef
   | Record<string, unknown>;
 

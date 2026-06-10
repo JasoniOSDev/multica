@@ -72,8 +72,8 @@ func validateAndNormalizeResourceRef(resourceType string, ref json.RawMessage) (
 		return nil, errors.New("resource_ref is required")
 	}
 	switch resourceType {
-	case "github_repo":
-		return validateGithubRepoRef(ref)
+	case "git_repo":
+		return validateGitRepoRef(ref)
 	case "local_directory":
 		return validateLocalDirectoryRef(ref)
 	default:
@@ -81,22 +81,22 @@ func validateAndNormalizeResourceRef(resourceType string, ref json.RawMessage) (
 	}
 }
 
-type githubRepoRef struct {
+type gitRepoRef struct {
 	URL               string `json:"url"`
 	DefaultBranchHint string `json:"default_branch_hint,omitempty"`
 }
 
-func validateGithubRepoRef(ref json.RawMessage) (json.RawMessage, error) {
-	var payload githubRepoRef
+func validateGitRepoRef(ref json.RawMessage) (json.RawMessage, error) {
+	var payload gitRepoRef
 	if err := json.Unmarshal(ref, &payload); err != nil {
-		return nil, fmt.Errorf("invalid github_repo payload: %w", err)
+		return nil, fmt.Errorf("invalid git_repo payload: %w", err)
 	}
 	payload.URL = strings.TrimSpace(payload.URL)
 	if payload.URL == "" {
-		return nil, errors.New("github_repo: url is required")
+		return nil, errors.New("git_repo: url is required")
 	}
 	if !isValidGitRepoURL(payload.URL) {
-		return nil, errors.New("github_repo: url must be a valid http(s) or ssh git URL")
+		return nil, errors.New("git_repo: url must be a valid http(s) or ssh git URL")
 	}
 	payload.DefaultBranchHint = strings.TrimSpace(payload.DefaultBranchHint)
 	out, err := json.Marshal(payload)

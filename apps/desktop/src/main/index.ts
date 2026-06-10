@@ -293,7 +293,17 @@ if (is.dev) {
   // to "Multica", but anchoring it here makes WM_CLASS ↔ StartupWMClass
   // (declared in electron-builder.yml) survive a regression in
   // productName / the build pipeline. Must run before requestSingleInstanceLock().
-  app.setName("Multica");
+  //
+  // Rebranded builds (e.g. the in-house variant that coexists with the
+  // official app) set VITE_APP_NAME at build time so this app gets its own
+  // name AND its own userData dir (~/Library/Application Support/<name>),
+  // avoiding config/session collisions with the stock "Multica" install.
+  // Unset → unchanged "Multica" behavior.
+  app.setName(
+    (import.meta.env as unknown as Record<string, string | undefined>)
+      .VITE_APP_NAME ||
+      "Multica",
+  );
 }
 
 // --- Protocol registration -----------------------------------------------

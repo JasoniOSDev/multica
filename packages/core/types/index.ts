@@ -77,7 +77,7 @@ export type {
   ProjectResource,
   ProjectResourceType,
   ProjectResourceRef,
-  GithubRepoResourceRef,
+  GitRepoResourceRef,
   LocalDirectoryResourceRef,
   CreateProjectResourceRequest,
   UpdateProjectResourceRequest,
@@ -85,14 +85,13 @@ export type {
 } from "./project";
 export type { PinnedItem, PinnedItemType, CreatePinRequest, ReorderPinsRequest } from "./pin";
 export type {
-  GitHubInstallation,
-  GitHubMergeableState,
-  GitHubPullRequest,
-  GitHubPullRequestChecksConclusion,
-  GitHubPullRequestState,
-  ListGitHubInstallationsResponse,
-  GitHubConnectResponse,
-} from "./github";
+  GitLabConnection,
+  GitLabConnectionResponse,
+  GitLabMergeRequest,
+  GitLabMergeRequestState,
+  UpdateGitLabConnectionRequest,
+  ListIssueMergeRequestsResponse,
+} from "./gitlab";
 export type {
   LarkInstallation,
   ListLarkInstallationsResponse,

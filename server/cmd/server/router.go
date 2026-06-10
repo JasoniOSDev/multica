@@ -179,6 +179,24 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 		h.WebhookIPRateLimiter = handler.NewRedisWebhookIPRateLimiter(rdb, handler.DefaultWebhookIPRateLimit())
 	}
 
+	// GitLab integration. The at-rest key (MULTICA_GITLAB_SECRET_KEY) only
+	// gates the optional Personal Access Token: when it is set we can seal a
+	// PAT into gitlab_connection.access_token_encrypted; when it is absent the
+	// connection config endpoint refuses requests that carry an access_token
+	// (503) but base_url + webhook-token configuration still work. Everything
+	// else about the integration (webhook ingestion, MR mirroring) is
+	// unaffected, so a misconfigured key never blocks server start.
+	if glKey, err := secretbox.LoadKey("MULTICA_GITLAB_SECRET_KEY"); err == nil {
+		if box, berr := secretbox.New(glKey); berr != nil {
+			slog.Error("gitlab: secretbox.New failed; PAT storage disabled", "error", berr)
+		} else {
+			h.GitLabBox = box
+			slog.Info("gitlab PAT-at-rest encryption enabled")
+		}
+	} else {
+		slog.Info("gitlab PAT-at-rest encryption disabled (MULTICA_GITLAB_SECRET_KEY not set)")
+	}
+
 	// Lark integration. Only wired when MULTICA_LARK_SECRET_KEY is set:
 	// the InstallationService refuses to fall back to plaintext storage
 	// for app_secret, and the BindingTokenService cannot mint usable
@@ -478,10 +496,10 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 	// purpose: the bearer token in the URL path IS the credential. Workspace
 	// context is derived from the trigger row, never from request headers.
 	r.Post("/api/webhooks/autopilots/{token}", h.HandleAutopilotWebhook)
-	// GitHub App webhook (no Multica auth — requests are authenticated via
-	// HMAC-SHA256 signature in the handler) and post-install setup callback.
-	r.Post("/api/webhooks/github", h.HandleGitHubWebhook)
-	r.Get("/api/github/setup", h.GitHubSetupCallback)
+	// GitLab project webhook (no Multica auth — requests are authenticated
+	// by the X-Gitlab-Token header, which the handler matches against a
+	// workspace's webhook_secret_token).
+	r.Post("/api/webhooks/gitlab", h.HandleGitLabWebhook)
 	// Stripe webhook (no Multica auth — Stripe signs the raw body
 	// with a shared secret, the multica-cloud upstream verifies. We
 	// only forward the bytes + the Stripe-Signature header; see
@@ -558,11 +576,11 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 					r.Get("/members", h.ListMembersWithUser)
 					r.Post("/leave", h.LeaveWorkspace)
 					r.Get("/invitations", h.ListWorkspaceInvitations)
-					// Listing GitHub installations is member-visible so the
-					// integrations tab no longer renders blank for non-admins;
-					// the handler strips the management handle and adds a
-					// can_manage hint so the UI can gate connect/disconnect.
-					r.Get("/github/installations", h.ListGitHubInstallations)
+					// Reading the GitLab connection is member-visible so the
+					// integrations tab renders for non-admins; the handler strips
+					// the webhook secret token and adds a can_manage hint so the
+					// UI can gate configure/disconnect.
+					r.Get("/gitlab/connection", h.GetGitLabConnection)
 				})
 				// Admin-level access
 				r.Group(func(r chi.Router) {
@@ -579,17 +597,17 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 				// Owner-only access
 				r.With(middleware.RequireWorkspaceRoleFromURL(queries, "id", "owner")).Delete("/", h.DeleteWorkspace)
 
-				// GitHub integration — connect / disconnect remain admin-only;
-				// the read-only list endpoint lives in the member-level group
-				// above so non-admins can see the workspace's connection state.
+				// GitLab integration — configure / disconnect remain admin-only;
+				// the read-only connection endpoint lives in the member-level
+				// group above so non-admins can see the connection state.
 				r.Group(func(r chi.Router) {
 					r.Use(middleware.RequireWorkspaceRoleFromURL(queries, "id", "owner", "admin"))
-					r.Get("/github/connect", h.GitHubConnect)
-					r.Delete("/github/installations/{installationId}", h.DeleteGitHubInstallation)
+					r.Put("/gitlab/connection", h.PutGitLabConnection)
+					r.Delete("/gitlab/connection", h.DeleteGitLabConnection)
 				})
 
 				// Lark integration. Listing is member-visible (same
-				// rationale as GitHub: the Integrations tab must
+				// rationale as GitLab: the Integrations tab must
 				// render for non-admins so they see "wired up by whom").
 				// Install / revoke require admin to prevent a non-admin
 				// from binding a Bot to a workspace agent or yanking
@@ -713,7 +731,7 @@ func NewRouterWithOptions(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus
 					r.Get("/metadata", h.ListIssueMetadata)
 					r.Put("/metadata/{key}", h.SetIssueMetadataKey)
 					r.Delete("/metadata/{key}", h.DeleteIssueMetadataKey)
-					r.Get("/pull-requests", h.ListPullRequestsForIssue)
+					r.Get("/merge-requests", h.ListMergeRequestsForIssue)
 				})
 			})
 
@@ -1100,7 +1118,7 @@ func parseUUID(s string) pgtype.UUID {
 // optionalUUID returns a NULL pgtype.UUID for an empty string and otherwise
 // behaves like parseUUID. Use this for actor IDs on events where the producer
 // may legitimately be a "system" actor with no member/agent attribution
-// (e.g. GitHub webhook auto-status sync) — the activity_log and inbox_item
+// (e.g. GitLab webhook auto-status sync) — the activity_log and inbox_item
 // tables both allow actor_id to be NULL.
 func optionalUUID(s string) pgtype.UUID {
 	if s == "" {

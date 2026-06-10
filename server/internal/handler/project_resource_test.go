@@ -28,10 +28,10 @@ func TestProjectResourceLifecycle(t *testing.T) {
 		testHandler.DeleteProject(httptest.NewRecorder(), req)
 	}()
 
-	// Attach a github_repo resource.
+	// Attach a git_repo resource.
 	w = httptest.NewRecorder()
 	req = newRequest("POST", "/api/projects/"+project.ID+"/resources", map[string]any{
-		"resource_type": "github_repo",
+		"resource_type": "git_repo",
 		"resource_ref":  map[string]any{"url": "https://github.com/multica-ai/multica"},
 	})
 	req = withURLParam(req, "id", project.ID)
@@ -43,8 +43,8 @@ func TestProjectResourceLifecycle(t *testing.T) {
 	if err := json.NewDecoder(w.Body).Decode(&created); err != nil {
 		t.Fatalf("decode CreateProjectResource: %v", err)
 	}
-	if created.ResourceType != "github_repo" {
-		t.Errorf("created.ResourceType = %q, want github_repo", created.ResourceType)
+	if created.ResourceType != "git_repo" {
+		t.Errorf("created.ResourceType = %q, want git_repo", created.ResourceType)
 	}
 	var ref struct {
 		URL string `json:"url"`
@@ -81,7 +81,7 @@ func TestProjectResourceLifecycle(t *testing.T) {
 	// Duplicate attach must conflict (UNIQUE on project_id + type + ref).
 	w = httptest.NewRecorder()
 	req = newRequest("POST", "/api/projects/"+project.ID+"/resources", map[string]any{
-		"resource_type": "github_repo",
+		"resource_type": "git_repo",
 		"resource_ref":  map[string]any{"url": "https://github.com/multica-ai/multica"},
 	})
 	req = withURLParam(req, "id", project.ID)
@@ -93,7 +93,7 @@ func TestProjectResourceLifecycle(t *testing.T) {
 	// Invalid URL must reject at the validator level.
 	w = httptest.NewRecorder()
 	req = newRequest("POST", "/api/projects/"+project.ID+"/resources", map[string]any{
-		"resource_type": "github_repo",
+		"resource_type": "git_repo",
 		"resource_ref":  map[string]any{"url": "not-a-url"},
 	})
 	req = withURLParam(req, "id", project.ID)
@@ -170,7 +170,7 @@ func TestProjectResourceAcceptsSSHRepoURLs(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			w := httptest.NewRecorder()
 			req := newRequest("POST", "/api/projects/"+project.ID+"/resources", map[string]any{
-				"resource_type": "github_repo",
+				"resource_type": "git_repo",
 				"resource_ref":  map[string]any{"url": tc.url},
 			})
 			req = withURLParam(req, "id", project.ID)
@@ -233,7 +233,7 @@ func TestIsValidGitRepoURL(t *testing.T) {
 }
 
 // TestProjectResourceLocalDirectoryLifecycle covers the full CRUD path for the
-// local_directory resource type added in MUL-2662. Unlike github_repo, the
+// local_directory resource type added in MUL-2662. Unlike git_repo, the
 // ref schema requires local_path + daemon_id and forbids any path that isn't
 // absolute. Two project-scoped resources pointing at the same daemon_id /
 // local_path on different projects must be allowed — Bohan explicitly chose
@@ -325,7 +325,7 @@ func TestProjectResourceLocalDirectoryLifecycle(t *testing.T) {
 
 	// Same (daemon_id, local_path) on a different project must succeed —
 	// the design explicitly allows the same directory to back multiple
-	// projects, contrast with github_repo's per-project UNIQUE check.
+	// projects, contrast with git_repo's per-project UNIQUE check.
 	w = httptest.NewRecorder()
 	req = newRequest("POST", "/api/projects/"+projectB.ID+"/resources", map[string]any{
 		"resource_type": "local_directory",
@@ -459,7 +459,7 @@ func TestCreateProjectAttachesResources(t *testing.T) {
 		"title": "Project with bundled resources",
 		"resources": []map[string]any{
 			{
-				"resource_type": "github_repo",
+				"resource_type": "git_repo",
 				"resource_ref":  map[string]any{"url": "https://github.com/multica-ai/multica"},
 			},
 		},
@@ -481,7 +481,7 @@ func TestCreateProjectAttachesResources(t *testing.T) {
 		testHandler.DeleteProject(httptest.NewRecorder(), r)
 	}()
 
-	if len(resp.Resources) != 1 || resp.Resources[0].ResourceType != "github_repo" {
+	if len(resp.Resources) != 1 || resp.Resources[0].ResourceType != "git_repo" {
 		t.Fatalf("response resources mismatch: %+v", resp.Resources)
 	}
 }
@@ -528,7 +528,7 @@ func TestProjectResourceCountBreadcrumb(t *testing.T) {
 
 	w = httptest.NewRecorder()
 	req = newRequest("POST", "/api/projects/"+project.ID+"/resources", map[string]any{
-		"resource_type": "github_repo",
+		"resource_type": "git_repo",
 		"resource_ref":  map[string]any{"url": "https://github.com/multica-ai/breadcrumb"},
 	})
 	req = withURLParam(req, "id", project.ID)
@@ -622,7 +622,7 @@ func TestCreateProjectWithResourcesEchoesCount(t *testing.T) {
 		"title": "Create echo with resource_count",
 		"resources": []map[string]any{
 			{
-				"resource_type": "github_repo",
+				"resource_type": "git_repo",
 				"resource_ref":  map[string]any{"url": "https://github.com/multica-ai/echo-count"},
 			},
 		},
@@ -655,7 +655,7 @@ func TestCreateProjectRollsBackOnInvalidResource(t *testing.T) {
 		"title": "Project that should not exist",
 		"resources": []map[string]any{
 			{
-				"resource_type": "github_repo",
+				"resource_type": "git_repo",
 				"resource_ref":  map[string]any{"url": "not-a-url"},
 			},
 		},

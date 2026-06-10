@@ -1,7 +1,7 @@
 /**
  * Project resources section. Read-mostly list of typed external pointers
- * (today: GitHub repos). Tap a row to open the URL in the system browser.
- * Long-press for delete (Pressable's onLongPress).
+ * (today: git repos — internal GitLab and any git URL). Tap a row to open the
+ * URL in the system browser. Long-press for delete (Pressable's onLongPress).
  *
  * Schema-tolerant by design — `resource_ref` is typed `unknown` in the
  * mobile schema (server may extend the shape per resource_type). We narrow
@@ -12,7 +12,7 @@ import { ActivityIndicator, Alert, Linking, Pressable, View } from "react-native
 import { useQuery } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import type {
-  GithubRepoResourceRef,
+  GitRepoResourceRef,
   ProjectResource,
 } from "@multica/core/types";
 import { Text } from "@/components/ui/text";
@@ -129,13 +129,13 @@ function ResourceRow({
 }
 
 function iconFor(type: string): keyof typeof Ionicons.glyphMap {
-  if (type === "github_repo") return "logo-github";
+  if (type === "git_repo") return "git-branch-outline";
   return "link-outline";
 }
 
 function getResourceUrl(resource: ProjectResource): string | null {
-  if (resource.resource_type === "github_repo") {
-    const ref = resource.resource_ref as GithubRepoResourceRef | undefined;
+  if (resource.resource_type === "git_repo") {
+    const ref = resource.resource_ref as GitRepoResourceRef | undefined;
     return ref?.url ?? null;
   }
   // Unknown type — try a `.url` field as a generic fallback.

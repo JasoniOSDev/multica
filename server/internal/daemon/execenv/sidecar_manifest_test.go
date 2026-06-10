@@ -380,7 +380,7 @@ func TestPrepareThenCleanupSidecarsWithProjectResources(t *testing.T) {
 				ProjectResources: []ProjectResourceForEnv{
 					{
 						ID:           "res-1",
-						ResourceType: "github_repo",
+						ResourceType: "git_repo",
 						ResourceRef:  []byte(`{"url":"https://github.com/example/repo"}`),
 					},
 				},
@@ -781,7 +781,7 @@ func TestPrepareThenCleanupSidecarsProjectResourcesCollisionPerProvider(t *testi
 				ProjectResources: []ProjectResourceForEnv{
 					{
 						ID:           "res-1",
-						ResourceType: "github_repo",
+						ResourceType: "git_repo",
 						ResourceRef:  []byte(`{"url":"https://github.com/example/repo"}`),
 					},
 				},

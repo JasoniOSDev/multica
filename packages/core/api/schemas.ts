@@ -13,6 +13,8 @@ import type {
   CreateAgentFromTemplateResponse,
   CreateBillingCheckoutSessionResponse,
   CreateBillingPortalSessionResponse,
+  GitLabConnectionResponse,
+  ListIssueMergeRequestsResponse,
   GroupedIssuesResponse,
   ListIssuesResponse,
   ListWebhookDeliveriesResponse,
@@ -876,4 +878,61 @@ export const CreateBillingPortalSessionResponseSchema = z.object({
 
 export const EMPTY_CREATE_BILLING_PORTAL_SESSION_RESPONSE: CreateBillingPortalSessionResponse = {
   url: "",
+};
+
+// ---------------------------------------------------------------------------
+// GitLab integration. The connection drives the workspace settings page; the
+// MR list drives the issue-detail sidebar. Both are installed-app boundaries
+// whose response shape will drift, so each runs through parseWithFallback with
+// a lenient schema (string enums kept as z.string() so drift downgrades).
+// ---------------------------------------------------------------------------
+
+const GitLabConnectionSchema = z.object({
+  workspace_id: z.string(),
+  base_url: z.string(),
+  webhook_secret_token: z.string().optional(),
+  has_access_token: z.boolean().default(false),
+  created_by: z.string().nullable().optional(),
+  created_at: z.string(),
+  updated_at: z.string(),
+}).loose();
+
+export const GitLabConnectionResponseSchema = z.object({
+  connection: GitLabConnectionSchema.nullable().default(null),
+  configured: z.boolean().default(false),
+  can_manage: z.boolean().optional(),
+}).loose();
+
+export const EMPTY_GITLAB_CONNECTION_RESPONSE: GitLabConnectionResponse = {
+  connection: null,
+  configured: false,
+  can_manage: false,
+};
+
+const GitLabMergeRequestSchema = z.object({
+  id: z.string(),
+  workspace_id: z.string(),
+  project_id: z.number().default(0),
+  project_path: z.string().default(""),
+  iid: z.number().default(0),
+  title: z.string().default(""),
+  // Lenient on purpose: an unknown server-side state downgrades to "open" in
+  // deriveMergeRequestStatusKind rather than failing the whole list.
+  state: z.string().default("opened"),
+  web_url: z.string().default(""),
+  source_branch: z.string().nullable().default(null),
+  author_username: z.string().nullable().default(null),
+  author_avatar_url: z.string().nullable().default(null),
+  merged_at: z.string().nullable().default(null),
+  closed_at: z.string().nullable().default(null),
+  mr_created_at: z.string().default(""),
+  mr_updated_at: z.string().default(""),
+}).loose();
+
+export const ListIssueMergeRequestsResponseSchema = z.object({
+  merge_requests: z.array(GitLabMergeRequestSchema).default([]),
+}).loose();
+
+export const EMPTY_LIST_ISSUE_MERGE_REQUESTS_RESPONSE: ListIssueMergeRequestsResponse = {
+  merge_requests: [],
 };

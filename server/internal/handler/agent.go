@@ -147,7 +147,7 @@ type RepoData struct {
 // working directory so skills/agents can discover project-scoped context.
 //
 // resource_ref is type-specific JSON; the daemon doesn't interpret it beyond
-// well-known fields like url for github_repo. New types can be added without
+// well-known fields like url for git_repo. New types can be added without
 // changing this struct.
 type ProjectResourceData struct {
 	ID           string          `json:"id"`

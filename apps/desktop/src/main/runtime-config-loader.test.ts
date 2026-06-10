@@ -53,6 +53,29 @@ describe("loadRuntimeConfig", () => {
     });
   });
 
+  it("falls back to the baked VITE_API_URL when packaged config is absent (in-house build)", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "multica-desktop-config-"));
+    await expect(
+      loadRuntimeConfig({
+        isDev: false,
+        configPath: join(dir, "missing.json"),
+        env: {
+          apiUrl: "http://10.37.16.72:18081",
+          wsUrl: "ws://10.37.16.72:18081/ws",
+          appUrl: "http://10.37.16.72:3000",
+        },
+      }),
+    ).resolves.toEqual({
+      ok: true,
+      config: {
+        schemaVersion: 1,
+        apiUrl: "http://10.37.16.72:18081",
+        wsUrl: "ws://10.37.16.72:18081/ws",
+        appUrl: "http://10.37.16.72:3000",
+      },
+    });
+  });
+
   it("parses a valid packaged desktop.json", async () => {
     const dir = await mkdtemp(join(tmpdir(), "multica-desktop-config-"));
     const configPath = join(dir, "desktop.json");
